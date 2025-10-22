@@ -1,5 +1,5 @@
 {
-  "name": "Meta-Prompt Generator 3.0",
+  "name": "Meta-Prompt Generator 5.0",
   "description": "An application that generates ready-to-use prompts based on user needs, automatically selecting the most appropriate prompting techniques (CoT, ToT, ReAct, etc.) and providing an interactive UI specification.",
   "requestFramePermissions": []
 }

@@ -4,15 +4,17 @@ export interface FormFieldData {
   label: string;
   type: 'textarea' | 'text' | 'select' | 'toggle' | 'radio' | 'checkbox' | 'readonly' | 'codeblock' | 'accordion' | 'buttons';
   required?: boolean;
-  options?: string[];
+  options?: string[] | { value: string; label: string; description: string; }[];
   default?: string | boolean;
   helperText?: string;
+  showIf?: { field: string; value: string };
 }
 
 export interface StepData {
   id: string;
   title: string;
   fields: FormFieldData[];
+  showIf?: { field: string; value: string };
 }
 
 export interface FormData {

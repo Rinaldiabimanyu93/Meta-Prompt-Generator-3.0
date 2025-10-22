@@ -1,18 +1,41 @@
 
 import React from 'react';
 import { type FormFieldData } from '../types';
+import { SparklesIcon } from './icons'; // Assuming you might want an icon
 
-interface FormFieldProps {
+const FormField: React.FC<{
   field: FormFieldData;
   value: any;
   onChange: (id: string, value: any) => void;
-}
-
-const FormField: React.FC<FormFieldProps> = ({ field, value, onChange }) => {
+}> = ({ field, value, onChange }) => {
   const commonInputClass = "w-full bg-gray-700 border border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition";
 
   const renderField = () => {
     switch (field.type) {
+      case 'buttons':
+        return (
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {field.options && Array.isArray(field.options) && field.options.map(opt => {
+              if (typeof opt === 'string') return null; // Should not happen with new type
+              const isSelected = value === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onChange(field.id, opt.value)}
+                  className={`p-4 rounded-lg border-2 text-left transition-all duration-200 transform hover:scale-105 ${
+                    isSelected
+                      ? 'bg-indigo-500/20 border-indigo-500 shadow-lg'
+                      : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+                  }`}
+                >
+                  <div className="font-bold text-white">{opt.label}</div>
+                  <div className="text-sm text-gray-400 mt-1">{opt.description}</div>
+                </button>
+              );
+            })}
+          </div>
+        )
       case 'textarea':
         return (
           <textarea
@@ -44,7 +67,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, value, onChange }) => {
             onChange={(e) => onChange(field.id, e.target.value)}
             className={commonInputClass}
           >
-            {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            {field.options?.map(opt => <option key={String(opt)} value={String(opt)}>{String(opt)}</option>)}
           </select>
         );
       case 'toggle':
@@ -68,16 +91,16 @@ const FormField: React.FC<FormFieldProps> = ({ field, value, onChange }) => {
         return (
           <div className="flex space-x-4">
             {field.options?.map(opt => (
-              <label key={opt} className="flex items-center space-x-2 cursor-pointer">
+              <label key={String(opt)} className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="radio"
                   name={field.id}
-                  value={opt}
-                  checked={value === opt}
+                  value={String(opt)}
+                  checked={value === String(opt)}
                   onChange={(e) => onChange(field.id, e.target.value)}
                   className="form-radio h-4 w-4 text-indigo-600 bg-gray-700 border-gray-600 focus:ring-indigo-500"
                 />
-                <span className="capitalize">{opt}</span>
+                <span className="capitalize">{String(opt)}</span>
               </label>
             ))}
           </div>
@@ -86,21 +109,21 @@ const FormField: React.FC<FormFieldProps> = ({ field, value, onChange }) => {
         return (
           <div className="flex flex-col space-y-2">
             {field.options?.map(opt => (
-              <label key={opt} className="flex items-center space-x-2 cursor-pointer">
+              <label key={String(opt)} className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  value={opt}
-                  checked={(value as string[] || []).includes(opt)}
+                  value={String(opt)}
+                  checked={(value as string[] || []).includes(String(opt))}
                   onChange={(e) => {
                     const currentValues = (value as string[] || []);
                     const newValues = e.target.checked
-                      ? [...currentValues, opt]
-                      : currentValues.filter(v => v !== opt);
+                      ? [...currentValues, String(opt)]
+                      : currentValues.filter(v => v !== String(opt));
                     onChange(field.id, newValues);
                   }}
                   className="form-checkbox h-4 w-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
                 />
-                <span className="capitalize">{opt}</span>
+                <span className="capitalize">{String(opt)}</span>
               </label>
             ))}
           </div>
