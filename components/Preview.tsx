@@ -4,47 +4,38 @@ import { CopyIcon, CheckIcon, ChevronDownIcon } from './icons';
 
 interface PreviewProps {
   data: ParsedOutput;
+  taskType: string;
 }
 
-// Komponen baru untuk memformat teks yang mungkin berisi daftar markdown
-const FormattedText: React.FC<{ content: string }> = ({ content }) => {
+// Access the 'marked' library from the global window object
+declare global {
+    interface Window {
+        marked: any;
+    }
+}
+
+
+// Komponen baru untuk merender markdown menjadi HTML yang ditata
+const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
   if (!content) return null;
-  // Memisahkan teks menjadi blok berdasarkan baris kosong
-  const blocks = content.split(/\n\s*\n/);
 
+  // Membersihkan dan mengurai markdown.
+  // 'gfm: true' untuk GitHub Flavored Markdown (tabel, dll.)
+  // 'breaks: true' agar baris baru tunggal menjadi <br>
+  const rawHtml = window.marked.parse(content, { gfm: true, breaks: true });
+
+  // Menggunakan `dangerouslySetInnerHTML` aman di sini karena kontennya
+  // berasal dari API Gemini yang kita kontrol, bukan input pengguna yang sewenang-wenang dari web.
   return (
-    <div className="text-gray-300">
-      {blocks.map((block, index) => {
-        const lines = block.split('\n').filter(line => line.trim() !== '');
-        if (lines.length === 0) return null;
-
-        const isUnorderedList = lines.every(line => line.trim().startsWith('- ') || line.trim().startsWith('* '));
-        const isOrderedList = lines.every(line => /^\d+\.\s/.test(line.trim()));
-
-        if (isUnorderedList) {
-          return (
-            <ul key={index} className="list-disc list-outside space-y-1 pl-5 mb-4">
-              {lines.map((line, lineIndex) => (
-                <li key={lineIndex}>{line.trim().substring(2)}</li>
-              ))}
-            </ul>
-          );
-        }
-
-        if (isOrderedList) {
-          return (
-            <ol key={index} className="list-decimal list-outside space-y-1 pl-5 mb-4">
-              {lines.map((line, lineIndex) => (
-                <li key={lineIndex}>{line.trim().replace(/^\d+\.\s/, '')}</li>
-              ))}
-            </ol>
-          );
-        }
-        
-        // Jika bukan daftar, tampilkan sebagai paragraf dengan mempertahankan spasi internal
-        return <p key={index} className="mb-4 whitespace-pre-wrap">{block}</p>;
-      })}
-    </div>
+    <div
+      className="prose prose-invert prose-sm max-w-none text-gray-300
+                 prose-headings:text-indigo-300 prose-a:text-indigo-400 prose-strong:text-gray-200
+                 prose-ul:list-disc prose-ol:list-decimal prose-li:my-1
+                 prose-blockquote:border-l-4 prose-blockquote:border-indigo-600 prose-blockquote:pl-4 prose-blockquote:italic
+                 prose-code:bg-gray-700/80 prose-code:rounded prose-code:px-1.5 prose-code:py-1 prose-code:text-sm prose-code:font-mono
+                 prose-pre:bg-gray-900/50 prose-pre:p-4 prose-pre:rounded-md"
+      dangerouslySetInnerHTML={{ __html: rawHtml }}
+    />
   );
 };
 
@@ -93,7 +84,7 @@ const AccordionItem: React.FC<{ title: string; children: React.ReactNode }> = ({
   );
 };
 
-const Preview: React.FC<PreviewProps> = ({ data }) => {
+const Preview: React.FC<PreviewProps> = ({ data, taskType }) => {
   // Menggunakan useMemo untuk memformat JSON hanya sekali saat data berubah
   const formattedUiSpec = useMemo(() => {
     try {
@@ -120,28 +111,36 @@ const Preview: React.FC<PreviewProps> = ({ data }) => {
 
       <CodeBlock title="Prompt Utama (Siap Tempel)" content={data.mainPrompt} />
 
-      <div className="bg-gray-800 rounded-lg overflow-hidden">
-        <AccordionItem title="Variasi A (Konservatif)">
-            <FormattedText content={data.variantA} />
-        </AccordionItem>
-        <AccordionItem title="Variasi B (Kreatif)">
-            <FormattedText content={data.variantB} />
-        </AccordionItem>
-      </div>
+      {taskType === 'image' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 -my-4">
+          <CodeBlock title="Variasi A (Konservatif)" content={data.variantA} />
+          <CodeBlock title="Variasi B (Kreatif)" content={data.variantB} />
+        </div>
+      ) : (
+        <div className="bg-gray-800 rounded-lg overflow-hidden">
+          <AccordionItem title="Variasi A (Konservatif)">
+              <MarkdownRenderer content={data.variantA} />
+          </AccordionItem>
+          <AccordionItem title="Variasi B (Kreatif)">
+              <MarkdownRenderer content={data.variantB} />
+          </AccordionItem>
+        </div>
+      )}
+
 
       <CodeBlock title="UI Spec (JSON)" content={formattedUiSpec} language="json" />
 
       <div>
         <h3 className="text-xl font-semibold mb-2 text-gray-300">Checklist Kualitas & Keamanan</h3>
         <div className="bg-gray-800 p-4 rounded-lg">
-          <FormattedText content={data.checklist} />
+          <MarkdownRenderer content={data.checklist} />
         </div>
       </div>
 
       <div>
         <h3 className="text-xl font-semibold mb-2 text-gray-300">Contoh Isian → Hasil</h3>
         <div className="bg-gray-800 p-4 rounded-lg">
-          <FormattedText content={data.example} />
+          <MarkdownRenderer content={data.example} />
         </div>
       </div>
     </div>

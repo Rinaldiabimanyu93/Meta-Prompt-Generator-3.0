@@ -2,7 +2,7 @@
 export interface FormFieldData {
   id: string;
   label: string;
-  type: 'textarea' | 'text' | 'select' | 'toggle' | 'radio' | 'checkbox' | 'readonly' | 'codeblock' | 'accordion' | 'buttons';
+  type: 'textarea' | 'text' | 'select' | 'toggle' | 'radio' | 'checkbox' | 'readonly' | 'codeblock' | 'accordion' | 'buttons' | 'image_upload' | 'file_upload';
   required?: boolean;
   options?: string[] | { value: string; label: string; description: string; }[];
   default?: string | boolean;
@@ -18,7 +18,7 @@ export interface StepData {
 }
 
 export interface FormData {
-  [key: string]: string | boolean | string[];
+  [key: string]: string | boolean | string[] | File | null;
 }
 
 export interface ParsedOutput {
@@ -30,4 +30,12 @@ export interface ParsedOutput {
   checklist: string;
   example: string;
   techniques: string;
+}
+
+export interface CodeAnalysisResult {
+  summary: string;
+  functions: string[];
+  classes: string[];
+  events?: string[];
+  dataStructures?: string[];
 }

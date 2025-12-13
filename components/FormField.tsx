@@ -1,7 +1,173 @@
 
-import React from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { type FormFieldData } from '../types';
-import { SparklesIcon } from './icons'; // Assuming you might want an icon
+import { SparklesIcon, UploadIcon, XCircleIcon } from './icons';
+
+// Component for Generic File Upload, for code files etc.
+const FileUploadField: React.FC<{
+  value: File | null;
+  onChange: (file: File | null) => void;
+  helperText?: string;
+  accept?: string;
+}> = ({ value, onChange, helperText, accept }) => {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    onChange(file || null);
+  };
+  
+  const handleRemoveFile = () => {
+    onChange(null);
+     if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+
+  return (
+    <div>
+        <input
+            ref={fileInputRef}
+            type="file"
+            accept={accept}
+            onChange={handleFileSelect}
+            className="hidden"
+        />
+        {!value ? (
+            <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center justify-center space-x-2 w-full px-4 py-2 rounded-md transition cursor-pointer border-2 border-dashed border-gray-600 hover:border-indigo-500 hover:bg-gray-700/50"
+            >
+                <UploadIcon className="h-5 w-5 text-gray-400" />
+                <span className="text-gray-300">Pilih File</span>
+            </button>
+        ) : (
+             <div className="flex items-center justify-between bg-gray-700/80 p-3 rounded-md text-sm">
+                <span className="text-gray-200 truncate" title={value.name}>{value.name}</span>
+                <button type="button" onClick={handleRemoveFile} className="text-gray-400 hover:text-red-400 ml-2 flex-shrink-0">
+                    <XCircleIcon className="h-5 w-5" />
+                </button>
+            </div>
+        )}
+         {helperText && <p className="text-xs text-gray-500 mt-2">{helperText}</p>}
+    </div>
+  );
+};
+
+
+// Component for Image Upload, integrated here to avoid creating new files
+const ImageUploadField: React.FC<{
+  value: File | null;
+  onChange: (file: File | null) => void;
+  helperText?: string;
+}> = ({ value, onChange, helperText }) => {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!value) {
+      setPreview(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(value);
+    setPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [value]);
+
+  const handleFile = (file: File | null) => {
+    if (file && file.type.startsWith('image/')) {
+      onChange(file);
+    } else if (file) {
+      // Simple error handling for non-image files
+      alert('Hanya file gambar yang diperbolehkan.');
+    }
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFile(file);
+    }
+  }, []);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFile(file);
+    }
+  };
+  
+  const handleRemoveImage = () => {
+    onChange(null);
+     if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+
+  return (
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors duration-200 ${isDragging ? 'border-indigo-500 bg-gray-700/50' : 'border-gray-600'}`}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      {preview ? (
+        <>
+            <img src={preview} alt="Pratinjau" className="mx-auto max-h-48 rounded-md" />
+            <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="absolute top-2 right-2 p-1 bg-gray-800/80 rounded-full text-gray-400 hover:text-white hover:bg-red-500/80 transition-all"
+                aria-label="Hapus gambar"
+            >
+                <XCircleIcon className="w-6 h-6" />
+            </button>
+        </>
+      ) : (
+        <div className="flex flex-col items-center">
+            <UploadIcon className="w-10 h-10 text-gray-500" />
+            <p className="mt-2 text-gray-400">
+                <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="font-semibold text-indigo-400 hover:text-indigo-300 focus:outline-none"
+                >
+                    Unggah file
+                </button>
+                {' '}atau seret ke sini
+            </p>
+            {helperText && <p className="text-xs text-gray-500 mt-1">{helperText}</p>}
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 const FormField: React.FC<{
   field: FormFieldData;
@@ -12,9 +178,32 @@ const FormField: React.FC<{
 
   const renderField = () => {
     switch (field.type) {
+      case 'readonly':
+        if (!value) return null; // Don't render if there's no value
+        return (
+           <div className="w-full bg-gray-800/60 border border-gray-700 rounded-md p-3 text-sm text-gray-400 italic">
+              {value}
+           </div>
+        );
+      case 'file_upload':
+        return (
+          <FileUploadField
+             value={value as File | null}
+             onChange={(file) => onChange(field.id, file)}
+             helperText={field.helperText}
+          />
+        );
+      case 'image_upload':
+        return (
+          <ImageUploadField 
+            value={value as File | null}
+            onChange={(file) => onChange(field.id, file)}
+            helperText={field.helperText}
+          />
+        )
       case 'buttons':
         return (
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {field.options && Array.isArray(field.options) && field.options.map(opt => {
               if (typeof opt === 'string') return null; // Should not happen with new type
               const isSelected = value === opt.value;
@@ -133,10 +322,14 @@ const FormField: React.FC<{
     }
   };
 
+  const isVisible = !(field.type === 'readonly' && !value);
+  if (!isVisible) return null;
+
   return (
     <div className="mb-6">
       <label htmlFor={field.id} className="block text-sm font-medium text-gray-300 mb-2">{field.label}{field.required && <span className="text-red-400 ml-1">*</span>}</label>
       {renderField()}
+       {field.type !== 'readonly' && field.helperText && <p className="text-xs text-gray-500 mt-2">{field.helperText}</p>}
     </div>
   );
 };

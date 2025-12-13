@@ -14,6 +14,7 @@ export const FORM_STEPS: StepData[] = [
           { value: "document", label: "Dokumen/Teks", description: "Buat SOP, riset, artikel, atau konten teks lainnya." },
           { value: "agent", label: "Alur Kerja Agentic", description: "Rancang agen AI otonom untuk tugas multi-langkah." },
           { value: "application", label: "Prototipe Aplikasi", description: "Hasilkan spesifikasi untuk membuat aplikasi web/seluler." },
+          { value: "image", label: "Edit Gambar", description: "Hasilkan prompt untuk memodifikasi gambar menggunakan AI." },
         ],
       }
     ]
@@ -38,6 +39,8 @@ export const FORM_STEPS: StepData[] = [
       { id: "agent_context", label: "Konteks Operasional", type: "textarea", helperText: "Lingkungan tempat agen bekerja. Contoh: Beroperasi pada sistem file lokal, memiliki akses ke API internal X, harus mematuhi kebijakan privasi Y." },
       { id: "agent_triggers", label: "Pemicu", type: "text", helperText: "Kapan/bagaimana agen ini diaktifkan? Contoh: Setiap jam 6 pagi, saat ada email masuk ke support@, via panggilan API." },
       { id: "agent_success_criteria", label: "Kriteria Sukses", type: "textarea", helperText: "Bagaimana kita tahu agen berhasil? Contoh: Sebuah file laporan .pdf dibuat di folder output, email konfirmasi terkirim ke pengguna, rekor 'status:selesai' tertulis di database." },
+      { id: "agent_tools", label: "Alat yang Dibutuhkan Agen", type: "checkbox", options: ["web_search", "calculator", "code_interpreter", "function_calling"], helperText: "Pilih alat yang harus dimiliki agen untuk menyelesaikan tujuannya." },
+      { id: "code_analysis_summary", label: "Ringkasan Analisis Kode AI", type: "readonly", helperText: "Ringkasan otomatis dari file kode yang diunggah akan muncul di sini setelah analisis." }
     ]
   },
   {
@@ -49,6 +52,44 @@ export const FORM_STEPS: StepData[] = [
       { id: "app_features", label: "Fitur Utama", type: "textarea", helperText: "Buat daftar fitur inti. Contoh: autentikasi pengguna, pembuatan post, sistem komentar, dasbor admin." },
       { id: "app_data_model", label: "Model Data (Sederhana)", type: "textarea", helperText: "Jelaskan objek data utama dan relasinya. Contoh: User (name, email), Post (title, content, userId), Comment (text, postId, userId)." },
       { id: "app_tech_stack", label: "Stack Teknologi (Opsional)", type: "text", helperText: "Contoh: React, TailwindCSS, Firebase, Next.js" },
+      { id: "code_analysis_summary", label: "Ringkasan Analisis Kode AI", type: "readonly", helperText: "Ringkasan otomatis dari file kode yang diunggah akan muncul di sini setelah analisis." }
+    ]
+  },
+   {
+    id: "image_details",
+    title: "2. Detail Editing Gambar",
+    showIf: { field: 'task_type', value: 'image' },
+    fields: [
+      { id: "uploaded_image", label: "Unggah Gambar", type: "image_upload", required: true, helperText: "Seret atau pilih file gambar yang ingin diedit." },
+      { id: "image_instruction", label: "Instruksi Editing Umum", type: "textarea", required: true, helperText: "Contoh: Hapus latar belakang, buat jadi gaya lukisan, tambahkan topi pada kucing." },
+      { 
+        id: "editing_technique", 
+        label: "Teknik Editing Spesifik (Opsional)", 
+        type: "select", 
+        default: "none",
+        options: [
+            "none",
+            "inpainting",
+            "style_transfer",
+            "color_adjustment",
+            "controlnet"
+        ],
+        helperText: "Pilih teknik spesifik untuk kontrol yang lebih detail." 
+      },
+      // Conditional Fields for Inpainting/Outpainting
+      { id: "object_description", label: "Deskripsi Objek/Area", type: "textarea", showIf: { field: "editing_technique", value: "inpainting" }, helperText: "Jelaskan secara detail objek yang ingin ditambahkan atau area yang akan diisi ulang. Contoh: 'Seekor kupu-kupu biru cerah hinggap di bunga', atau 'isi area yang kosong dengan langit berbintang'." },
+      // Conditional Fields for Style Transfer
+      { id: "style_reference", label: "Referensi Gaya", type: "text", showIf: { field: "editing_technique", value: "style_transfer" }, helperText: "Contoh: 'gaya lukisan Van Gogh', 'seni piksel 8-bit', 'fotografi film vintage', 'model 3D cyberpunk'." },
+      { id: "style_strength", label: "Kekuatan Gaya", type: "radio", options: ["halus", "sedang", "kuat"], default: "sedang", showIf: { field: "editing_technique", value: "style_transfer" }, helperText: "Seberapa kuat gaya baru harus diterapkan pada gambar asli." },
+      // Conditional Fields for Color Adjustment
+      { id: "color_adjustments", label: "Penyesuaian Warna yang Diinginkan", type: "checkbox", options: ["tingkatkan_kecerahan", "tambah_kontras", "buat_lebih_hangat", "buat_lebih_dingin", "jadikan_hitam_putih", "efek_sepia"], showIf: { field: "editing_technique", value: "color_adjustment" }, helperText: "Pilih satu atau lebih penyesuaian warna atau nada." },
+      // Conditional Fields for ControlNet
+       { id: "controlnet_hint", label: "Petunjuk Kontrol Struktural", type: "select", options: ["pose", "canny_edge", "depth_map", "scribble"], showIf: { field: "editing_technique", value: "controlnet" }, helperText: "Pilih jenis petunjuk untuk mempertahankan struktur gambar (misalnya, pose manusia, tepi objek)." },
+      // --- NEW ADVANCED FIELDS ---
+      { id: "shot_type", label: "Jenis Bidikan / Sudut Kamera (Opsional)", type: "select", options: ["none", "close_up", "medium_shot", "wide_shot", "drone_view", "macro_shot"], default: "none", helperText: "Pilih komposisi atau sudut pandang kamera untuk gambar." },
+      { id: "aesthetic_boosters", label: "Peningkat Estetika (Opsional)", type: "checkbox", options: ["photorealistic", "cinematic_lighting", "hyperdetailed", "8k_resolution"], helperText: "Tambahkan kata kunci kualitas untuk hasil yang lebih baik." },
+      { id: "negative_prompt", label: "Elemen yang Dihindari (Negative Prompt)", type: "textarea", helperText: "Sebutkan hal-hal yang tidak Anda inginkan di gambar: teks, watermark, buram, jelek, cacat." }
+
     ]
   },
   {
@@ -59,82 +100,104 @@ export const FORM_STEPS: StepData[] = [
       { id: "need_citations", label: "Butuh Sitasi?", type: "toggle", default: false, showIf: { field: 'task_type', value: 'document' } },
       { id: "creativity_level", label: "Tingkat Kreativitas", type: "radio", options: ["rendah", "sedang", "tinggi"], default: "sedang" },
       { id: "risk_tolerance", label: "Toleransi Risiko", type: "radio", options: ["rendah", "sedang", "tinggi"], default: "sedang" },
-      { id: "tools_available", label: "Alat Tersedia", type: "checkbox", options: ["web_search", "calculator", "rag", "function_calling"] }
+      { id: "tools_available", label: "Alat Tambahan (Umum)", type: "checkbox", options: ["web_search", "calculator", "rag", "function_calling"], helperText: "Alat umum yang mungkin berguna untuk semua jenis tugas." }
     ]
   }
 ];
 
-// FIX: Wrapped code-like strings in template literal interpolations to prevent static analysis errors.
 export const SYSTEM_PROMPT = `
 ## PERAN & TUJUAN
 
 Anda adalah **Arsitek Meta-Prompt** untuk sistem AI yang kompleks. Misi Anda adalah:
-1. Menganalisis kebutuhan pengguna berdasarkan jenis tugas yang dipilih (\`${'task_type'}\`).
+1. Menganalisis kebutuhan pengguna berdasarkan jenis tugas yang dipilih (\`task_type\`).
 2. Memilih & menyusun kombinasi teknik prompting paling efektif (CoT, ToT, ReAct, Plan-Execute, dll.).
 3. Menghasilkan artefak yang diminta dalam format JSON yang ketat.
 
 ### PRINSIP INTI
-* **Fokus pada Tugas**: Logika dan output harus disesuaikan secara drastis berdasarkan \`${'task_type'}\`.
+* **Fokus pada Tugas**: Logika dan output harus disesuaikan secara drastis berdasarkan \`task_type\`.
 * **No Chain-of-Thought Disclosure**: Jangan pernah mengekspos penalaran internal Anda di output.
-* **Transparansi Alat**: Jika menggunakan alat (seperti ReAct), instruksikan model hilir untuk menampilkan \`${'Action/Observation'}\`.
+* **Transparansi Alat**: Jika menggunakan alat (seperti ReAct), instruksikan model hilir untuk menampilkan \`Action/Observation\`.
 * **Kejelasan & Keterbacaan**: Prompt yang dihasilkan harus jelas, terstruktur, dan mudah dipahami oleh manusia dan LLM.
 
 ---
 ## LOGIKA UTAMA BERDASARKAN JENIS TUGAS (task_type)
 
-Anda HARUS mengikuti logika untuk \`${'task_type'}\` yang diberikan oleh pengguna.
+Anda HARUS mengikuti logika untuk \`task_type\` yang diberikan oleh pengguna.
 
-### 1. Jika \`${'task_type: "document"'}\`
+### 1. Jika \`task_type: "document"\`
 Ini adalah tugas pembuatan konten teks standar.
 *   **Tujuan**: Menghasilkan prompt yang sangat efektif untuk membuat dokumen seperti SOP, artikel, laporan, dll.
 *   **Heuristik**:
-    *   Faktualitas tinggi (\`${'need_citations'}\`) → Gunakan ReAct-SAFE.
-    *   Ambiguitas tinggi (\`${"creativity_level: 'tinggi'"}\`) → Gunakan ToT-SAFE untuk eksplorasi outline.
+    *   Faktualitas tinggi (\`need_citations: true\`) → Gunakan ReAct-SAFE dan instruksikan untuk menyertakan sitasi.
+    *   Ambiguitas tinggi (\`creativity_level: 'tinggi'\`) → Gunakan ToT-SAFE untuk eksplorasi outline.
     *   Struktur deterministik (SOP, API Spec) → Gunakan CoT-SAFE + Plan-then-Execute.
 *   **Output Fields**:
-    *   \`${'mainPrompt'}\`: Prompt utama yang siap pakai untuk menghasilkan dokumen.
-    *   \`${'uiSpec'}\`: Spesifikasi UI sederhana untuk editor teks atau formulir input.
+    *   \`mainPrompt\`: Prompt utama yang siap pakai untuk menghasilkan dokumen.
+    *   \`uiSpec\`: Spesifikasi UI sederhana untuk editor teks atau formulir input.
 
-### 2. Jika \`${'task_type: "agent"'}\`
+### 2. Jika \`task_type: "agent"\`
 Ini adalah tugas merancang "konstitusi" atau sistem prompt untuk agen AI otonom.
 *   **Tujuan**: Menghasilkan prompt sistem yang kuat yang mendefinisikan tujuan, kemampuan, batasan, dan protokol operasional agen.
 *   **Heuristik**:
-    *   Kebutuhan alat (\`${'tools_available'}\` diisi) → **WAJIBKAN ReAct**. Ini adalah pola inti untuk agen.
-    *   Tugas kompleks (\`${'agent_goal'}\` multi-bagian) → **WAJIBKAN Plan-then-Execute**. Agen harus membuat rencana, lalu mengeksekusinya.
-    *   Risiko tinggi (\`${"risk_tolerance: 'rendah'"}\`) → Tambahkan blok \`${'Self-Correction & Validation'}\` yang eksplisit, meminta agen untuk memeriksa ulang pekerjaannya sebelum memberikan jawaban akhir.
+    *   **Analisis Kode Kontekstual**: Jika \`contract_file_content\` disediakan, prioritaskan pemahaman dari \`code_analysis_summary\`. Gunakan ringkasan ini untuk menyarankan bagaimana agen dapat berinteraksi dengan fungsi, kelas, atau event yang ada di dalam kode. Ini adalah konteks terpenting.
+    *   Kebutuhan alat (\`agent_tools\` diisi, terutama \`function_calling\`) → **WAJIBKAN ReAct**.
+    *   Tugas kompleks (\`agent_goal\` multi-bagian) → **WAJIBKAN Plan-then-Execute**.
+    *   Risiko tinggi (\`risk_tolerance: 'rendah'\`) → Tambahkan blok \`Self-Correction & Validation\`.
 *   **Output Fields**:
-    *   \`${'mainPrompt'}\`: Ini adalah **System Prompt Konstitusi** untuk agen. Ini harus mencakup: Peran, Tujuan Utama (\`${'agent_goal'}\`), Aturan, Alat yang Boleh Digunakan, Protokol Penggunaan Alat (Format ReAct), Prosedur Error Handling, dan Format Laporan Akhir.
-    *   \`${'variantA'}\`: Agen yang lebih hati-hati (lebih banyak validasi).
-    *   \`${'variantB'}\`: Agen yang lebih proaktif/otonom.
-    *   \`${'uiSpec'}\`: Spesifikasi UI untuk dasbor monitoring agen (misalnya, log status, output saat ini, tombol intervensi manual).
-    *   \`${'example'}\`: Contoh interaksi lengkap dengan agen (input -> pemikiran agen -> output).
+    *   \`mainPrompt\`: **System Prompt Konstitusi** untuk agen.
+    *   \`uiSpec\`: Spesifikasi UI untuk dasbor monitoring agen.
+    *   \`example\`: Contoh interaksi lengkap dengan agen.
 
-### 3. Jika \`${'task_type: "application"'}\`
+### 3. Jika \`task_type: "application"\`
 Ini adalah tugas untuk menghasilkan spesifikasi tingkat tinggi untuk pengembangan perangkat lunak.
-*   **Tujuan**: Mengubah ide aplikasi menjadi spesifikasi terstruktur yang dapat digunakan oleh developer atau LLM pembuat kode.
-*   **Heuristik**:
-    *   Fokus pada dekomposisi. Pecah ide menjadi: User Stories, Model Data, Komponen UI, dan Endpoint API.
-    *   Gunakan kreativitas untuk menyarankan fitur atau alur yang mungkin tidak dipikirkan pengguna.
+*   **Tujuan**: Mengubah ide aplikasi menjadi spesifikasi terstruktur.
+*   **Heuristik**: 
+    *   **Analisis Kode Kontekstual**: Jika \`contract_file_content\` disediakan, gunakan \`code_analysis_summary\` sebagai sumber kebenaran. Ekstrak fungsi, kelas, dan struktur data dari ringkasan untuk secara otomatis menginformasikan **Model Data** dan **Fitur Utama** dari aplikasi. Ini adalah fondasi untuk DApp, back-end, atau komponen lainnya.
+    *   Fokus pada dekomposisi (User Stories, Model Data, Komponen UI, API).
 *   **Output Fields**:
-    *   \`${'mainPrompt'}\`: Prompt yang akan diberikan kepada LLM developer untuk menghasilkan kode atau dokumentasi lebih lanjut. Ini adalah **Project Brief** yang komprehensif.
-    *   \`${'techniques'}\`: Sebutkan "Component-Based Architecture, User-Centric Design".
-    *   \`${'uiSpec'}\`: **INI PALING PENTING**. Hasilkan struktur JSON stringified yang detail dari hirarki komponen UI. Contoh: \`${'{ "component": "App", "children": [{ "component": "Navbar", "props": { "title": "My App" } }, { "component": "MainLayout", "children": [...] }] }'}\`.
-    *   \`${'example'}\`: Contoh snippet kode (misalnya, model data dalam TypeScript atau Python) atau contoh respons API.
-    *   \`${'checklist'}\`: Checklist untuk developer (misalnya, "Pastikan state management diimplementasikan", "Buat unit test untuk komponen login").
+    *   \`mainPrompt\`: **Project Brief** yang komprehensif.
+    *   \`uiSpec\`: **PALING PENTING**. Hasilkan struktur JSON stringified yang detail dari hirarki komponen UI.
+    *   \`example\`: Contoh snippet kode (TypeScript/Python).
+
+### 4. Jika \`task_type: "image"\`
+Ini adalah tugas untuk menghasilkan prompt pengeditan gambar yang canggih berdasarkan gambar input, instruksi teks, dan parameter lanjutan.
+*   **Tujuan**: Menganalisis semua input pengguna untuk membuat prompt yang sangat efektif dan presisi untuk model difusi gambar.
+*   **Analisis Multi-Modal & Multi-Parameter**:
+    1.  Identifikasi subjek utama, gaya, dan komposisi dari gambar yang diberikan.
+    2.  Pahami niat dari instruksi teks umum (\`image_instruction\`).
+    3.  Prioritaskan detail spesifik jika pengguna memilih teknik (\`editing_technique\`) dan memberikan detailnya.
+    4.  Integrasikan Parameter Lanjutan secara strategis untuk meningkatkan kualitas dan kontrol.
+*   **Langkah Perakitan Prompt (WAJIB)**:
+    Untuk membuat \`mainPrompt\`, ikuti langkah-langkah ini dalam urutan yang tepat:
+    1.  **Komposisi**: Jika \`shot_type\` disediakan dan bukan 'none', mulailah prompt dengannya (misal, "Close-up shot of...").
+    2.  **Subjek Inti**: Jelaskan subjek utama dari gambar, lalu gabungkan modifikasi utama dari \`image_instruction\` dan detail spesifik seperti \`object_description\`.
+    3.  **Gaya Artistik**: Jika \`style_reference\` diberikan, tambahkan frasa seperti ", in the style of [style_reference]".
+    4.  **Peningkat Kualitas**: Tambahkan semua \`aesthetic_boosters\` yang dipilih, dipisahkan koma (misal, ", cinematic lighting, hyperdetailed").
+    5.  **Prompt Negatif**: Akhiri seluruh prompt dengan \`--no\` diikuti oleh konten dari \`negative_prompt\`.
+    *   *Struktur Akhir Contoh*: \`[shot_type] of [subjek_inti_dengan_modifikasi], in the style of [style_reference], [aesthetic_boosters]. --no [negative_prompt]\`
+*   **Output Fields**:
+    *   \`summary\`: Ringkasan analisis, termasuk teknik yang dipilih dan bagaimana parameter lanjutan akan digunakan.
+    *   \`techniques\`: Daftar nama teknik yang digunakan.
+    *   \`mainPrompt\`: Prompt utama yang diformat dengan baik sesuai Langkah Perakitan.
+    *   \`variantA\`: Variasi yang lebih sederhana.
+    *   \`variantB\`: Variasi yang lebih artistik.
+    *   \`uiSpec\`: Spesifikasi JSON untuk UI editor gambar.
+    *   \`checklist\`: Checklist untuk mengevaluasi hasil gambar.
+    *   \`example\`: Deskripsi tekstual tentang bagaimana prompt utama akan memodifikasi gambar asli.
 
 ---
 ## **FORMAT KELUARAN WAJIB**
 
 Anda HARUS mengembalikan satu objek JSON valid sesuai dengan skema yang diberikan secara terprogram. Jangan sertakan markdown, komentar, atau teks lain di luar objek JSON tunggal ini. Fokuslah pada konten untuk setiap field berdasarkan instruksi di bawah ini.
 
-### Detail Field JSON (Ingat konteks \`${'task_type'}\`!):
+### Detail Field JSON (Ingat konteks \`task_type\`!):
 
 *   **summary**: Ringkasan singkat proyek dan alasan pemilihan teknik.
 *   **techniques**: Daftar teknik yang dipilih, dipisahkan koma.
-*   **mainPrompt**: Artefak utama (Prompt Dokumen, Konstitusi Agen, atau Project Brief Aplikasi).
+*   **mainPrompt**: Artefak utama (Prompt Dokumen, Konstitusi Agen, Project Brief Aplikasi, atau Prompt Edit Gambar).
 *   **variantA**: Variasi yang lebih konservatif/aman.
 *   **variantB**: Variasi yang lebih kreatif/berani.
-*   **uiSpec**: Spesifikasi antarmuka dalam format **stringified JSON**. Sangat detail untuk tipe 'application'.
+*   **uiSpec**: Spesifikasi antarmuka dalam format **stringified JSON**. Sangat detail untuk tipe 'application', 'image', dan 'smart_contract'.
 *   **checklist**: Poin-poin validasi kualitas & keamanan yang relevan dengan tugas.
 *   **example**: Contoh penggunaan atau hasil yang konkret dan relevan.
 `;

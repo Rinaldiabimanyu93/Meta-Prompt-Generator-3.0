@@ -93,11 +93,11 @@ const getTextFromXlsx = async (arrayBuffer: ArrayBuffer): Promise<string> => {
 
 
 /**
- * Mengekstrak teks dari file teks biasa (txt, md).
+ * Mengekstrak teks dari file teks biasa (txt, md, sol, js, ts, py).
  * @param {File} file - Objek file.
  * @returns {Promise<string>} Konten file sebagai string.
  */
-const getTextFromTxt = (file: File): Promise<string> => {
+const getTextFromPlainFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target?.result as string);
@@ -115,9 +115,10 @@ export const parseFile = async (file: File): Promise<string> => {
     const extension = file.name.split('.').pop()?.toLowerCase();
     
     try {
-        // Untuk file teks, kita tidak butuh arrayBuffer
-        if (extension === 'txt' || extension === 'md') {
-            return await getTextFromTxt(file);
+        // Untuk file teks dan kode, kita tidak butuh arrayBuffer
+        const plainTextExtensions = ['txt', 'md', 'sol', 'js', 'ts', 'py', 'json', 'csv', 'html', 'css'];
+        if (extension && plainTextExtensions.includes(extension)) {
+            return await getTextFromPlainFile(file);
         }
 
         const arrayBuffer = await file.arrayBuffer();
@@ -131,7 +132,12 @@ export const parseFile = async (file: File): Promise<string> => {
             case 'xlsx':
                 return await getTextFromXlsx(arrayBuffer);
             default:
-                throw new Error(`Tipe file .${extension} tidak didukung.`);
+                // Fallback for unknown extensions, try to read as text
+                try {
+                    return await getTextFromPlainFile(file);
+                } catch (e) {
+                     throw new Error(`Tipe file .${extension} tidak didukung.`);
+                }
         }
     } catch (error) {
         console.error(`Error parsing .${extension} file:`, error);
