@@ -25,7 +25,7 @@ const META_PROMPT_SCHEMA = {
  */
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
+const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 3000): Promise<T> => {
   try {
     return await fn();
   } catch (error: any) {
@@ -37,7 +37,8 @@ const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000)
     if (retries > 0 && isRateLimit) {
       console.warn(`Rate limit hit, retrying in ${delay}ms... (${retries} attempts left)`);
       await sleep(delay);
-      return callWithRetry(fn, retries - 1, delay * 2);
+      // Menggunakan exponential backoff (delay dikali 2 setiap gagal)
+      return callWithRetry(fn, retries - 1, delay * 2.5);
     }
     throw error;
   }
@@ -46,21 +47,29 @@ const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000)
 /**
  * Mendapatkan detail field termasuk opsi yang diizinkan untuk membantu AI mengisi dengan tepat.
  */
-const getDetailedSchemaForTask = (taskType: string): string => {
+const getDetailedSchemaForTask = (taskType: string) => {
     const steps = FORM_STEPS.filter(s => s.id === 'prefs' || s.id === `${taskType}_details`);
-    let schemaDescription = "Gunakan ID Field berikut sebagai KEY JSON. PENTING: Ikuti aturan nilainya dengan ketat.\n";
+    const schema: Record<string, any> = {};
     
     steps.forEach(step => {
         step.fields.forEach(f => {
-            let info = `- ID: "${f.id}" (Label: ${f.label})`;
-            if (f.options) {
-                const opts = f.options.map(o => typeof o === 'string' ? o : o.value);
-                info += ` | PILIHAN YANG DIIZINKAN (WAJIB SALAH SATU): [${opts.join(', ')}]`;
+            schema[f.id] = {
+                type: Type.STRING,
+                description: f.label + (f.helperText ? ` (${f.helperText})` : '')
+            };
+            if (f.type === 'checkbox' || f.type === 'radio' || f.type === 'select') {
+                if (f.options) {
+                    const opts = f.options.map(o => typeof o === 'string' ? o : o.value);
+                    schema[f.id].description += ` | PILIHAN: [${opts.join(', ')}]`;
+                }
             }
-            schemaDescription += info + "\n";
+            if (f.type === 'checkbox') {
+                schema[f.id].type = Type.ARRAY;
+                schema[f.id].items = { type: Type.STRING };
+            }
         });
     });
-    return schemaDescription;
+    return schema;
 };
 
 export const detectTaskType = async (text: string): Promise<string> => {
@@ -176,7 +185,7 @@ WAJIB MENGGUNAKAN OPSI BERIKUT (jangan gunakan bahasa Inggris):
 };
 
 export const extractInfoFromDocument = async (text: string, taskType: string): Promise<Partial<FormData>> => {
-    const schema = getDetailedSchemaForTask(taskType);
+    const schemaProperties = getDetailedSchemaForTask(taskType);
     const systemInstruction = `Anda adalah Spesialis Ekstraksi Data yang sangat teliti.
 Tugas: Isi formulir JSON untuk tugas "${taskType}" berdasarkan konten dokumen.
 
@@ -188,9 +197,7 @@ ATURAN UTAMA:
 5. KHUSUS PRESENTATION: 
    - 'pres_topic': Judul atau topik presentasi.
    - 'pres_slides': Estimasi jumlah slide jika ada, atau default '10'.
-   - 'pres_data': Ekstrak poin-poin data, fakta, atau outline per slide jika ada.
-
-SKEMA FIELD:\n${schema}`;
+   - 'pres_data': Ekstrak poin-poin data, fakta, atau outline per slide jika ada.`;
 
     return callWithRetry(async () => {
         const response = await ai.models.generateContent({
@@ -199,22 +206,21 @@ SKEMA FIELD:\n${schema}`;
             config: {
                 systemInstruction,
                 responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: schemaProperties
+                }
             }
         });
-        let cleanJson = response.text || '{}';
-        if (cleanJson.includes('```json')) {
-            cleanJson = cleanJson.split('```json')[1].split('```')[0].trim();
-        }
-        return JSON.parse(cleanJson);
+        return JSON.parse(response.text || '{}');
     });
 };
 
 export const extractInfoWithInstruction = async (text: string, instruction: string, taskType: string): Promise<Partial<FormData>> => {
-    const schema = getDetailedSchemaForTask(taskType);
+    const schemaProperties = getDetailedSchemaForTask(taskType);
     const systemInstruction = `Ekstrak data berdasarkan instruksi spesifik: "${instruction}"
 Tugas ini dikategorikan sebagai "${taskType}".
-WAJIB menggunakan Bahasa Indonesia dan format JSON sesuai skema:
-${schema}`;
+WAJIB menggunakan Bahasa Indonesia dan format JSON sesuai skema yang disediakan.`;
 
     return callWithRetry(async () => {
         const response = await ai.models.generateContent({
@@ -223,6 +229,10 @@ ${schema}`;
             config: {
                 systemInstruction,
                 responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: schemaProperties
+                }
             }
         });
         return JSON.parse(response.text || '{}');
@@ -230,11 +240,10 @@ ${schema}`;
 };
 
 export const extractInfoFromIdea = async (instruction: string, taskType: string): Promise<Partial<FormData>> => {
-    const schema = getDetailedSchemaForTask(taskType);
+    const schemaProperties = getDetailedSchemaForTask(taskType);
     const systemInstruction = `Konversikan ide berikut menjadi data terstruktur (JSON) dalam Bahasa Indonesia.
 Tugas ini dikategorikan sebagai "${taskType}".
-Pilih opsi yang valid sesuai daftar skema:
-${schema}`;
+Pilih opsi yang valid sesuai daftar skema yang disediakan.`;
 
     return callWithRetry(async () => {
         const response = await ai.models.generateContent({
@@ -243,6 +252,10 @@ ${schema}`;
             config: {
                 systemInstruction,
                 responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: schemaProperties
+                }
             }
         });
         return JSON.parse(response.text || '{}');

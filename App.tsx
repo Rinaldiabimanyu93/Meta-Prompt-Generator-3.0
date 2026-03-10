@@ -70,8 +70,9 @@ const isCodeFile = (file: File): boolean => {
 };
 
 const formatErrorMessage = (error: any): string => {
-    if (error.status === 429 || error.message?.includes('429') || error.message?.includes('RESOURCE_EXHAUSTED')) {
-        return "Kuota API Terlampaui (429). Mohon tunggu beberapa saat sebelum mencoba kembali atau gunakan API key dengan batas yang lebih tinggi.";
+    const msg = error.message || "";
+    if (error.status === 429 || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
+        return "Kuota API Terlampaui (429). Mohon tunggu sekitar 60 detik sebelum mencoba kembali. Jika Anda menggunakan Free Tier, limit biasanya 15 request per menit.";
     }
     return error.message || "Terjadi kesalahan yang tidak terduga.";
 };
@@ -95,7 +96,6 @@ const App: React.FC = () => {
   const [analysisResult, setAnalysisResult] = useState<{ textForAnalysis: string, fileTextContent: string, hasFiles: boolean, hasInstruction: boolean, detectedTaskType: TaskType } | null>(null);
   const [autoFillCompleted, setAutoFillCompleted] = useState(false);
   
-  const prevTaskTypeRef = useRef<string | boolean | string[] | File | null>(formData.task_type);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const taskSpecificFields = useMemo(() => {
@@ -111,33 +111,27 @@ const App: React.FC = () => {
     return map;
   }, []);
 
-  useEffect(() => {
-    const currentTaskType = formData.task_type;
-    const prevTaskType = prevTaskTypeRef.current;
-    if (prevTaskType && prevTaskType !== currentTaskType) {
-      const oldTaskType = prevTaskType as string;
-      const fieldsToClear = taskSpecificFields[oldTaskType];
-      if (fieldsToClear && fieldsToClear.length > 0) {
-        setFormData(currentData => {
-          const newData = { ...currentData };
-          const initialDefaults = createInitialState();
-          fieldsToClear.forEach(fieldId => {
-            newData[fieldId] = initialDefaults[fieldId];
-          });
-          if (oldTaskType === 'agent' || oldTaskType === 'application') {
-              newData['contract_file_content'] = '';
-              newData['code_analysis_summary'] = '';
-          }
-          return newData;
-        });
-      }
-    }
-    prevTaskTypeRef.current = currentTaskType;
-  }, [formData.task_type, taskSpecificFields]);
-
   const handleFormChange = useCallback((id: string, value: any) => {
     setFormData(prev => {
       const newData = { ...prev, [id]: value };
+      
+      // Jika task_type berubah, bersihkan field spesifik tugas lama
+      if (id === 'task_type') {
+        const oldTaskType = prev.task_type as string;
+        const fieldsToClear = taskSpecificFields[oldTaskType] || [];
+        const initialDefaults = createInitialState();
+        
+        fieldsToClear.forEach(fieldId => {
+          newData[fieldId] = initialDefaults[fieldId];
+        });
+        
+        if (oldTaskType === 'agent' || oldTaskType === 'application') {
+          newData['contract_file_content'] = '';
+          newData['code_analysis_summary'] = '';
+        }
+      }
+
+      // Bersihkan field yang tidak lagi terlihat berdasarkan showIf
       const initialDefaults = createInitialState();
       FORM_STEPS.forEach(step => {
         const isStepVisible = !step.showIf || newData[step.showIf.field] === step.showIf.value;
@@ -151,7 +145,7 @@ const App: React.FC = () => {
       });
       return newData;
     });
-  }, []);
+  }, [taskSpecificFields]);
   
   const parseAndCombineFiles = async (files: File[]): Promise<{ combinedText: string; failedFiles: string[] }> => {
     if (files.length === 0) return { combinedText: '', failedFiles: [] };
@@ -233,13 +227,17 @@ const App: React.FC = () => {
           
           const fileToKeepForImage = filesToAnalyze.find(f => f.type.startsWith('image/'));
           
-          setFormData(prev => ({ 
-              ...createInitialState(), 
-              task_type: confirmedTaskType, 
-              uploaded_image: confirmedTaskType === 'image' ? fileToKeepForImage || null : null, 
-              ...mergedData 
-          }));
+          setFormData(prev => {
+              const initialState = createInitialState();
+              return { 
+                  ...initialState, 
+                  task_type: confirmedTaskType, 
+                  uploaded_image: confirmedTaskType === 'image' ? fileToKeepForImage || null : null, 
+                  ...mergedData 
+              };
+          });
           setAutoFillCompleted(true);
+          setAnalysisError(null);
       } catch (err: any) {
           setAnalysisError(formatErrorMessage(err));
       } finally {
@@ -324,7 +322,7 @@ const App: React.FC = () => {
     }
   };
   
-  const resetAutoFill = () => { setAutoFillCompleted(false); setFilesToAnalyze([]); setPastedContexts([]); setCurrentContextInput(''); setAnalysisInstruction(''); if (fileInputRef.current) fileInputRef.current.value = ''; };
+  const resetAutoFill = () => { setAutoFillCompleted(false); setFilesToAnalyze([]); setPastedContexts([]); setCurrentContextInput(''); setAnalysisInstruction(''); setAnalysisError(null); if (fileInputRef.current) fileInputRef.current.value = ''; };
 
   const startOver = useCallback(() => { setOutput(null); setError(null); setAnalysisError(null); setFormData(createInitialState()); setSubmissionCount(0); setNeedsConfirmation(false); setAnalysisResult(null); resetAutoFill(); }, []);
   
@@ -344,7 +342,7 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 md:gap-10">
           <div className="bg-gray-800/50 rounded-2xl shadow-2xl shadow-indigo-900/20 p-6 sm:p-8 border border-gray-700 h-fit md:sticky top-8">
             {error && (
-               <div className="bg-red-900/50 border border-red-600 text-red-200 px-4 py-3 rounded-lg relative mb-6 flex items-start space-x-3" role="alert">
+               <div className="bg-red-900/50 border border-red-600 text-red-200 px-4 py-3 rounded-lg relative mb-6 flex items-start space-x-3 animate-pulse-slow" role="alert">
                 <AlertTriangleIcon className="h-5 w-5 text-red-400 mt-1 flex-shrink-0" />
                 <div><strong className="font-bold">Terjadi Kesalahan</strong><span className="block mt-1">{error}</span></div>
               </div>
@@ -422,7 +420,7 @@ const App: React.FC = () => {
                       <button type="button" onClick={resetAutoFill} className="mt-3 text-sm font-semibold text-indigo-300 hover:text-indigo-200 bg-indigo-500/20 px-3 py-1 rounded-md">Ubah Input / Tambah Konteks</button>
                   </div>
                 )}
-                {analysisError && <div className={`mt-2 text-sm flex items-start space-x-2 p-2 rounded-md border ${analysisError.includes('429') || analysisError.includes('Kuota') ? 'text-yellow-400 bg-yellow-900/30 border-yellow-700/50' : 'text-red-400 bg-red-900/30 border-red-700/50'}`}><AlertTriangleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" /><span>{analysisError}</span></div>}
+                {analysisError && <div className={`mt-2 text-sm flex items-start space-x-2 p-2 rounded-md border ${analysisError.includes('429') || analysisError.includes('Kuota') ? 'text-yellow-400 bg-yellow-900/30 border-yellow-700/50 shadow-lg shadow-yellow-900/20' : 'text-red-400 bg-red-900/30 border-red-700/50'}`}><AlertTriangleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" /><span>{analysisError}</span></div>}
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
