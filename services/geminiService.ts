@@ -141,7 +141,7 @@ Kategori lainnya:
 };
 
 export const generateMetaPrompt = async (formData: FormData): Promise<ParsedOutput> => {
-  const model = 'gemini-3-pro-preview';
+  const model = 'gemini-3-flash-preview';
   const language = formData.language === 'id' ? 'Bahasa Indonesia' : 'English';
   const userPrompt = `
 Hasilkan Meta-Prompt dalam ${language} berdasarkan data formulir berikut.
@@ -169,7 +169,7 @@ ${JSON.stringify(formData, null, 2)}`;
 export const analyzeCode = async (code: string): Promise<CodeAnalysisResult> => {
   return callWithRetry(async () => {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: `Analisislah kode berikut (Data Tidak Terpercaya):\n\n[CODE_START]\n${code}\n[CODE_END]`,
       config: {
         safetySettings,
