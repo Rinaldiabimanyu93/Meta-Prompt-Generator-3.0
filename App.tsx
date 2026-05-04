@@ -69,9 +69,10 @@ const isCodeFile = (file: File): boolean => {
     return !!extension && codeExtensions.includes(extension);
 };
 
-const formatErrorMessage = (error: any): string => {
+const formatErrorMessage = (error: any, onRateLimit?: (seconds: number) => void): string => {
     const msg = error.message || "";
     if (error.status === 429 || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
+        if (onRateLimit) onRateLimit(60);
         return "Kuota API Terlampaui (429). Mohon tunggu sekitar 60 detik sebelum mencoba kembali. Jika Anda menggunakan Free Tier, limit biasanya 15 request per menit.";
     }
     if (msg.includes('token count exceeds') || msg.includes('INVALID_ARGUMENT') && msg.includes('maximum number of tokens')) {
@@ -80,6 +81,18 @@ const formatErrorMessage = (error: any): string => {
     return error.message || "Terjadi kesalahan yang tidak terduga.";
 };
 
+
+// Debounce Hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 const App: React.FC = () => {
   const [formData, setFormData] = useState<FormData>(createInitialState);
@@ -92,6 +105,7 @@ const App: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisInstruction, setAnalysisInstruction] = useState('');
+  const debouncedInstruction = useDebounce(analysisInstruction, 1500);
   const [pastedContexts, setPastedContexts] = useState<string[]>([]);
   const [currentContextInput, setCurrentContextInput] = useState(''); 
   const [filesToAnalyze, setFilesToAnalyze] = useState<File[]>([]);
@@ -100,6 +114,28 @@ const App: React.FC = () => {
   const [autoFillCompleted, setAutoFillCompleted] = useState(false);
   const [refinementInstruction, setRefinementInstruction] = useState('');
   
+  // Cooldown State for 429 Errors
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+      cooldownTimerRef.current = setInterval(() => {
+        setCooldown(prev => {
+          if (prev <= 1) {
+            if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+    };
+  }, [cooldown]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const taskSpecificFields = useMemo(() => {
@@ -243,7 +279,7 @@ const App: React.FC = () => {
           setAutoFillCompleted(true);
           setAnalysisError(null);
       } catch (err: any) {
-          setAnalysisError(formatErrorMessage(err));
+          setAnalysisError(formatErrorMessage(err, (s) => setCooldown(s)));
       } finally {
           setIsAnalyzing(false);
           setAnalysisResult(null);
@@ -288,7 +324,7 @@ const App: React.FC = () => {
       }
       setNeedsConfirmation(true);
     } catch (err: any) {
-      setAnalysisError(formatErrorMessage(err));
+      setAnalysisError(formatErrorMessage(err, (s) => setCooldown(s)));
       setIsAnalyzing(false);
     }
   };
@@ -306,7 +342,7 @@ const App: React.FC = () => {
         setRefinementInstruction('');
         setAnalysisError(null);
     } catch (err: any) {
-        setAnalysisError(formatErrorMessage(err));
+        setAnalysisError(formatErrorMessage(err, (s) => setCooldown(s)));
     } finally {
         setIsAnalyzing(false);
     }
@@ -335,7 +371,7 @@ const App: React.FC = () => {
       setOutput(result); 
       setSubmissionCount(prev => prev + 1);
     } catch (e: any) { 
-      setError(formatErrorMessage(e)); 
+      setError(formatErrorMessage(e, (s) => setCooldown(s))); 
       setOutput(null); 
     } finally { 
       setIsLoading(false); 
@@ -461,11 +497,17 @@ const App: React.FC = () => {
                             <button 
                               type="button" 
                               onClick={handleAutoFill} 
-                              disabled={isAutoFillDisabled} 
+                              disabled={isAutoFillDisabled || cooldown > 0} 
                               className="btn-primary w-full group relative overflow-hidden py-5"
                             >
                               <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                              {isAnalyzing ? ( <> <LoaderIcon className="h-7 w-7 animate-spin" /> <span>Sinkronisasi Data...</span> </> ) : ( <> <SparklesIcon className="h-6 w-6 group-hover:rotate-12 transition-transform duration-500" /> <span>Ekstrak & Persiapkan Form</span> </> )}
+                              {isAnalyzing ? ( 
+                                <> <LoaderIcon className="h-7 w-7 animate-spin" /> <span>Sinkronisasi Data...</span> </> 
+                              ) : cooldown > 0 ? (
+                                <> <span>Tunggu {cooldown}s...</span> </>
+                              ) : ( 
+                                <> <SparklesIcon className="h-6 w-6 group-hover:rotate-12 transition-transform duration-500" /> <span>Ekstrak & Persiapkan Form</span> </> 
+                              )}
                             </button>
                         </div>
                       )}
@@ -492,10 +534,10 @@ const App: React.FC = () => {
                                 <button 
                                     type="button" 
                                     onClick={handleRefine} 
-                                    disabled={!refinementInstruction.trim() || isAnalyzing} 
+                                    disabled={!refinementInstruction.trim() || isAnalyzing || cooldown > 0} 
                                     className="absolute right-4 bottom-4 p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-20 transition-all active:scale-95 shadow-xl shadow-emerald-950/40"
                                 >
-                                    {isAnalyzing ? <LoaderIcon className="h-5 w-5 animate-spin" /> : <SparklesIcon className="h-5 w-5" />}
+                                    {isAnalyzing ? <LoaderIcon className="h-5 w-5 animate-spin" /> : cooldown > 0 ? <span className="text-[10px] font-bold">{cooldown}s</span> : <SparklesIcon className="h-5 w-5" />}
                                 </button>
                             </div>
                             
@@ -526,9 +568,9 @@ const App: React.FC = () => {
               
               <div className="sticky bottom-6 z-20 glass-card mx-0 mt-8 p-8 rounded-[2.5rem] flex flex-col sm:flex-row gap-5 items-center ring-1 ring-white/10 shadow-indigo-900/10">
                   <button type="button" onClick={startOver} className="btn-secondary w-full sm:w-auto px-12">Reset</button>
-                  <button type="submit" disabled={isLoading || isAnalyzing} className="btn-primary w-full sm:flex-1 py-5 text-xl tracking-tight">
+                  <button type="submit" disabled={isLoading || isAnalyzing || cooldown > 0} className="btn-primary w-full sm:flex-1 py-5 text-xl tracking-tight">
                     {isLoading ? <LoaderIcon className="h-7 w-7 animate-spin" /> : <SparklesIcon className="h-7 w-7" />}
-                    <span>{isLoading ? 'Merekayasa...' : 'Forge Meta-Prompt'}</span>
+                    <span>{isLoading ? 'Merekayasa...' : cooldown > 0 ? `Tunggu (${cooldown}s)` : 'Forge Meta-Prompt'}</span>
                   </button>
               </div>
             </form>

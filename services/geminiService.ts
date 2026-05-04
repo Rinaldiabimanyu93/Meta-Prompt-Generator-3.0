@@ -28,13 +28,30 @@ const META_PROMPT_SCHEMA = {
 };
 
 /**
+ * Simple in-memory cache to avoid redundant API calls.
+ */
+const apiCache = new Map<string, any>();
+
+const getCacheKey = (fnName: string, params: any): string => {
+  return `${fnName}:${JSON.stringify(params)}`;
+};
+
+/**
  * Helper untuk menangani rate limiting (Error 429) dengan retry.
  */
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 3000): Promise<T> => {
+const callWithRetry = async <T>(fn: () => Promise<T>, fnName: string, params: any, retries = 2, delay = 3000): Promise<T> => {
+  const cacheKey = getCacheKey(fnName, params);
+  if (apiCache.has(cacheKey)) {
+    console.log(`[Cache Hit] ${fnName}`);
+    return apiCache.get(cacheKey);
+  }
+
   try {
-    return await fn();
+    const result = await fn();
+    apiCache.set(cacheKey, result);
+    return result;
   } catch (error: any) {
     const isRateLimit = error.status === 429 || 
                        error.message?.includes('429') || 
@@ -42,10 +59,9 @@ const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 3000)
                        error.message?.includes('quota');
     
     if (retries > 0 && isRateLimit) {
-      console.warn(`Rate limit hit, retrying in ${delay}ms... (${retries} attempts left)`);
+      console.warn(`Rate limit hit in ${fnName}, retrying in ${delay}ms... (${retries} attempts left)`);
       await sleep(delay);
-      // Menggunakan exponential backoff (delay dikali 2 setiap gagal)
-      return callWithRetry(fn, retries - 1, delay * 2.5);
+      return callWithRetry(fn, fnName, params, retries - 1, delay * 2);
     }
     throw error;
   }
@@ -121,7 +137,7 @@ Kategori lainnya:
     });
     const parsed = JSON.parse(response.text || '{"detected_type":"document"}');
     return parsed.detected_type;
-  });
+  }, 'detectTaskType', { text });
 };
 
 export const generateMetaPrompt = async (formData: FormData): Promise<ParsedOutput> => {
@@ -147,7 +163,7 @@ ${JSON.stringify(formData, null, 2)}`;
         }
     });
     return JSON.parse(response.text || '{}') as ParsedOutput;
-  });
+  }, 'generateMetaPrompt', { formData });
 };
 
 export const analyzeCode = async (code: string): Promise<CodeAnalysisResult> => {
@@ -170,7 +186,7 @@ export const analyzeCode = async (code: string): Promise<CodeAnalysisResult> => 
       }
     });
     return JSON.parse(response.text || '{}') as CodeAnalysisResult;
-  });
+  }, 'analyzeCode', { code });
 };
 
 export const detectPreferences = async (text: string): Promise<Partial<FormData>> => {
@@ -201,7 +217,7 @@ WAJIB MENGGUNAKAN OPSI BERIKUT (jangan gunakan bahasa Inggris):
       }
     });
     return JSON.parse(response.text || '{}');
-  });
+  }, 'detectPreferences', { text });
 };
 
 export const extractInfoFromDocument = async (text: string, taskType: string): Promise<Partial<FormData>> => {
@@ -234,7 +250,7 @@ ATURAN UTAMA:
             }
         });
         return JSON.parse(response.text || '{}');
-    });
+    }, 'extractInfoFromDocument', { text, taskType });
 };
 
 export const extractInfoWithInstruction = async (text: string, instruction: string, taskType: string): Promise<Partial<FormData>> => {
@@ -258,7 +274,7 @@ WAJIB menggunakan Bahasa Indonesia dan format JSON sesuai skema yang disediakan.
             }
         });
         return JSON.parse(response.text || '{}');
-    });
+    }, 'extractInfoWithInstruction', { text, instruction, taskType });
 };
 
 export const extractInfoFromIdea = async (instruction: string, taskType: string): Promise<Partial<FormData>> => {
@@ -282,7 +298,7 @@ Pilih opsi yang valid sesuai daftar skema yang disediakan.`;
             }
         });
         return JSON.parse(response.text || '{}');
-    });
+    }, 'extractInfoFromIdea', { instruction, taskType });
 };
 
 export const refineFormData = async (currentData: FormData, instruction: string, taskType: string): Promise<Partial<FormData>> => {
@@ -315,5 +331,5 @@ ATURAN:
             }
         });
         return JSON.parse(response.text || '{}');
-    });
+    }, 'refineFormData', { serializableData, instruction, taskType });
 };
