@@ -151,9 +151,10 @@ Struktur prompt utama wajib mengikuti standard industri:
 - **OWASP Alignment**: Jika 'security_level' tinggi, gunakan standar keamanan data ISO/IEC atau OWASP.
 
 ### 5. PROTOKOL TATA LETAK & KETERBACAAN (MASTER GRADE)
-- **Vertical Rhythm**: Gunakan baris kosong ganda (\n\n) untuk memisahkan domain instruksi.
+- **Extreme Vertical Spacing**: WAJIB menggunakan baris kosong GANDA (\n\n) di antara setiap blok utama (CONTEXT, TASK, FORMAT, CONSTRAINTS). Jangan pernah menggabungkan instruksi berbeda dalam satu paragraf panjang.
+- **Visual Atomic Units**: Pecah instruksi kompleks menjadi poin-poin singkat. Gunakan indentasi untuk sub-poin.
 - **Visual Hierarchy**: Gunakan header level 1 (#) dan level 2 (##) untuk navigasi dokumen prompt yang cepat.
-- **Syntactic Sugar**: Gunakan tabel atau daftar poin untuk parameter yang kompleks.
+- **Syntactic Sugar**: Gunakan tabel atau daftar poin untuk parameter yang kompleks agar struktur terlihat bersih.
 
 ### 6. LOGIKA BAHASA (LANGUAGE ENFORCEMENT)
 Lihat field 'language' pada input JSON:

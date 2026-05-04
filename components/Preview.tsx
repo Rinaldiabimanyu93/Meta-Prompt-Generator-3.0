@@ -42,19 +42,19 @@ const CodeBlock: React.FC<{ title: string; content: string; language?: string }>
   }, [content]);
 
   return (
-    <div className="bg-gray-800 rounded-xl overflow-hidden my-8 shadow-xl border border-gray-700/50">
-      <div className="flex justify-between items-center px-6 py-4 bg-gray-700/40 border-b border-gray-700">
-        <h3 className="font-bold text-gray-200 tracking-wide uppercase text-sm">{title}</h3>
+    <div className="bg-slate-900 rounded-[2rem] overflow-hidden my-12 shadow-2xl border border-slate-800/80 ring-1 ring-white/5">
+      <div className="flex justify-between items-center px-10 py-6 bg-slate-950/40 border-b border-slate-800/50">
+        <h3 className="font-black text-indigo-400 tracking-widest uppercase text-[10px]">{title}</h3>
         <button
           onClick={handleCopy}
-          className="flex items-center space-x-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg transition-all active:scale-95 shadow-lg"
+          className="flex items-center space-x-3 text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-xl shadow-indigo-900/40"
           aria-label={`Copy ${title}`}
         >
           {copied ? <CheckIcon className="h-4 w-4 text-green-200" /> : <CopyIcon className="h-4 w-4" />}
-          <span className="font-medium">{copied ? 'Berhasil Disalin' : 'Salin Prompt'}</span>
+          <span className="font-bold tracking-tight">{copied ? 'COPIED' : 'COPY PROMPT'}</span>
         </button>
       </div>
-      <pre className="p-8 text-sm text-gray-200 whitespace-pre-wrap break-words leading-loose font-mono bg-gray-900/20">
+      <pre className="p-10 text-sm text-slate-200 whitespace-pre-wrap break-words leading-[1.8] font-mono bg-slate-950/20">
         <code className={`language-${language}`}>{content}</code>
       </pre>
     </div>
@@ -64,16 +64,16 @@ const CodeBlock: React.FC<{ title: string; content: string; language?: string }>
 const AccordionItem: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="border-b border-gray-700/50 last:border-b-0">
+    <div className="border-b border-slate-800/50 last:border-b-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center px-6 py-5 text-left font-bold text-indigo-300 hover:bg-indigo-500/5 transition-all"
+        className="w-full flex justify-between items-center px-10 py-8 text-left font-black text-indigo-300 hover:bg-indigo-500/5 transition-all group"
       >
-        <span className="text-lg">{title}</span>
-        <ChevronDownIcon className={`h-6 w-6 transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-400' : 'text-gray-500'}`} />
+        <span className="text-sm tracking-[0.2em] uppercase">{title}</span>
+        <ChevronDownIcon className={`h-6 w-6 transition-transform duration-500 ${isOpen ? 'rotate-180 text-indigo-400' : 'text-slate-600 group-hover:text-slate-400'}`} />
       </button>
       {isOpen && (
-        <div className="px-8 py-8 bg-gray-800/60 border-t border-gray-700/30 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="px-10 pb-12 pt-6 bg-slate-950/40 border-t border-slate-800/30 animate-in fade-in slide-in-from-top-4 duration-500">
           {children}
         </div>
       )}
