@@ -8,7 +8,7 @@ import Step from './components/Step';
 import Preview from './components/Preview';
 import Placeholder from './components/Placeholder';
 import SkeletonPreview from './components/SkeletonPreview';
-import { LoaderIcon, AlertTriangleIcon, SparklesIcon, UploadIcon, PencilIcon, XCircleIcon, CodeBracketIcon } from './components/icons';
+import { Loader2 as LoaderIcon, AlertTriangle as AlertTriangleIcon, Sparkles as SparklesIcon, Upload as UploadIcon, Pencil as PencilIcon, XCircle as XCircleIcon, Code2 as CodeBracketIcon, Check as CheckIcon } from 'lucide-react';
 import FormField from './components/FormField';
 
 // Initial state creator
@@ -352,142 +352,212 @@ const App: React.FC = () => {
   const activeSteps = useMemo(() => FORM_STEPS.filter(step => !step.showIf || formData[step.showIf.field] === step.showIf.value), [formData]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 p-4 sm:p-8 font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-200 p-4 sm:p-8 font-sans selection:bg-indigo-500/30">
       <div className="max-w-7xl mx-auto">
-        <header className="text-center mb-10">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500">Meta-Prompt Generator</h1>
-          <p className="text-gray-400 mt-2 max-w-2xl mx-auto">Rancang prompt canggih untuk teks, alur kerja AI, spesifikasi aplikasi, dan editing gambar dengan mudah.</p>
+        <header className="text-center mb-16 animate-in fade-in slide-in-from-top-4 duration-1000">
+          <h1 className="text-5xl sm:text-7xl font-black gradient-brand tracking-tighter pb-2">Meta-Prompt Generator</h1>
+          <p className="text-slate-400 mt-4 text-lg max-w-2xl mx-auto font-medium">Bentuk prompt canggih masa depan dengan rekayasa bahasa AI yang presisi.</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-10">
-          <div className="bg-gray-800/50 rounded-2xl shadow-2xl shadow-indigo-900/20 p-6 sm:p-8 border border-gray-700 h-fit md:sticky top-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div className="card-premium p-6 sm:p-10 lg:sticky top-8">
             {error && (
-               <div className="bg-red-900/50 border border-red-600 text-red-200 px-4 py-3 rounded-lg relative mb-6 flex items-start space-x-3 animate-pulse-slow" role="alert">
-                <AlertTriangleIcon className="h-5 w-5 text-red-400 mt-1 flex-shrink-0" />
-                <div><strong className="font-bold">Terjadi Kesalahan</strong><span className="block mt-1">{error}</span></div>
+               <div className="bg-red-900/30 border border-red-500/50 text-red-100 px-6 py-4 rounded-2xl relative mb-8 flex items-start space-x-4 animate-in zoom-in-95" role="alert">
+                <AlertTriangleIcon className="h-6 w-6 text-red-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <strong className="font-black uppercase tracking-widest text-xs">Sistem Error</strong>
+                  <span className="block mt-1 text-sm opacity-90">{error}</span>
+                </div>
               </div>
             )}
             
-             <div className="bg-gray-700/30 rounded-lg mb-8 border border-gray-600/50 p-4 space-y-4">
-                <h2 className="font-bold text-xl text-indigo-400">Isi Cepat dengan AI</h2>
-                {!autoFillCompleted ? (
-                  <>
-                  <p className="text-sm text-gray-400 -mt-2">Lengkapi instruksi dan tempelkan konteks sebanyak yang Anda butuhkan.</p>
-                  
-                  {needsConfirmation && analysisResult ? (
-                      <div className="bg-indigo-900/30 p-4 rounded-lg border border-indigo-700 animate-fade-in">
-                          <h3 className="font-semibold text-white">Konfirmasi Jenis Tugas</h3>
-                          <p className="text-sm text-indigo-200 mt-1">AI mendeteksi tugas ini sebagai: <strong className="font-bold">{taskTypeOptions.find(o => o.value === analysisResult.detectedTaskType)?.label || analysisResult.detectedTaskType}</strong>. Apakah ini benar?</p>
-                          <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                              <button type="button" onClick={() => handleConfirmation(analysisResult.detectedTaskType)} className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-md transition">Ya, Lanjutkan</button>
-                              <select onChange={(e) => handleConfirmation(e.target.value as TaskType)} defaultValue="" className="flex-1 px-4 py-2 text-sm text-white bg-gray-600 hover:bg-gray-500 border-gray-500 rounded-md transition appearance-none text-center">
-                                    <option value="" disabled>Bukan, ganti ke...</option>
-                                    {taskTypeOptions.filter(o => o.value !== analysisResult.detectedTaskType).map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                                </select>
-                          </div>
-                          <button type="button" onClick={cancelConfirmation} className="w-full text-center text-xs text-gray-400 hover:text-white mt-3">Batal</button>
-                      </div>
-                  ) : (
-                    <div className="space-y-6 animate-fade-in-fast">
-                         <div>
-                            <label htmlFor="analysis-instruction" className="text-sm font-medium text-gray-300 mb-2 block">1. Tulis Ide / Instruksi</label>
-                            <textarea id="analysis-instruction" value={analysisInstruction} onChange={(e) => setAnalysisInstruction(e.target.value)} placeholder="Contoh: 'Bantu saya buat skrip video tiktok dari artikel ini' atau 'Rancang bot untuk cek stok barang'." className="w-full bg-gray-700 border border-gray-600 rounded-md p-3 text-sm focus:ring-2 focus:ring-indigo-500 h-24 placeholder-gray-500" disabled={isAnalyzing} />
-                        </div>
+            <div className="bg-slate-800/20 rounded-3xl mb-10 border border-slate-700/30 p-1">
+                <div className="p-6">
+                    <h2 className="font-black text-2xl text-white tracking-tight flex items-center space-x-3">
+                        <SparklesIcon className="h-6 w-6 text-indigo-400" />
+                        <span>AI Forge</span>
+                    </h2>
+                    <p className="text-slate-500 text-sm mt-1 font-medium italic">Biarkan Gemini merancang pondasi formulir Anda secara otomatis.</p>
+                </div>
 
-                        <div>
-                            <label className="text-sm font-medium text-gray-300 mb-2 block">2. Unggah Dokumen / Tempel Referensi (Multi-Konteks)</label>
-                            
-                            {(filesToAnalyze.length > 0 || pastedContexts.length > 0) && (
-                                <div className="space-y-2 mb-3 max-h-56 overflow-y-auto custom-scrollbar bg-black/20 p-2 rounded-lg">
-                                  {filesToAnalyze.map((file, index) => (
-                                    <div key={`file-${index}`} className="flex items-center justify-between bg-gray-700/50 border border-gray-600/50 p-2 rounded-md text-sm">
-                                      <div className="flex items-center space-x-2 truncate"><CodeBracketIcon className="h-4 w-4 text-indigo-400 flex-shrink-0" /><span className="text-gray-300 truncate">{file.name}</span></div>
-                                      <button type="button" onClick={() => removeFile(index)} disabled={isAnalyzing} className="text-gray-400 hover:text-red-400 ml-2 p-1 rounded-full hover:bg-gray-600 transition"><XCircleIcon className="h-4 w-4" /></button>
-                                    </div>
-                                  ))}
-                                  {pastedContexts.map((txt, index) => (
-                                    <div key={`txt-${index}`} className="flex items-center justify-between bg-gray-700/50 border border-indigo-900/50 p-2 rounded-md text-sm group">
-                                      <div className="flex items-center space-x-2 truncate"><PencilIcon className="h-4 w-4 text-purple-400 flex-shrink-0" /><span className="text-gray-300 truncate">"{txt.substring(0, 40)}..."</span></div>
-                                      <button type="button" onClick={() => removeContext(index)} disabled={isAnalyzing} className="text-gray-400 hover:text-red-400 ml-2 p-1 rounded-full hover:bg-gray-600 transition"><XCircleIcon className="h-4 w-4" /></button>
-                                    </div>
-                                  ))}
-                                </div>
-                            )}
-
-                            <div className="space-y-3">
-                                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isAnalyzing} className="flex items-center justify-center space-x-2 w-full px-4 py-2 rounded-md transition border border-dashed border-gray-500 hover:border-indigo-400 hover:bg-gray-700/50 text-gray-400">
-                                    <UploadIcon className="h-5 w-5" /> <span className="text-sm font-medium">Unggah File</span>
-                                </button>
-                                <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} disabled={isAnalyzing} accept=".pdf,.docx,.pptx,.txt,.md,.xlsx,image/*,.sol,.js,.ts,.py" multiple />
-
-                                <div className="relative">
-                                    <textarea value={currentContextInput} onChange={(e) => setCurrentContextInput(e.target.value)} placeholder="Atau tempelkan potongan teks di sini..." className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 pr-20 text-sm focus:ring-2 focus:ring-indigo-500 h-20 placeholder-gray-500 resize-none" disabled={isAnalyzing} />
-                                    <button type="button" onClick={handleAddContext} disabled={!currentContextInput.trim() || isAnalyzing} className="absolute right-2 bottom-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded disabled:opacity-50 transition">Tambah</button>
+                <div className="px-6 pb-6 pt-2">
+                  {!autoFillCompleted ? (
+                    <>
+                      {needsConfirmation && analysisResult ? (
+                        <div className="glass-card p-8 rounded-3xl animate-in zoom-in-95 duration-500 relative overflow-hidden ring-1 ring-white/10">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                              <SparklesIcon className="h-12 w-12 text-indigo-400" />
+                            </div>
+                            <h3 className="text-2xl font-black text-white tracking-tighter mb-2">Konfirmasi Tugas</h3>
+                            <p className="text-slate-400 leading-relaxed text-sm mb-8">AI mendeteksi sebagai: <span className="text-indigo-300 font-bold px-3 py-1 bg-indigo-500/10 rounded-lg border border-indigo-500/20 ml-1">{taskTypeOptions.find(o => o.value === analysisResult.detectedTaskType)?.label || analysisResult.detectedTaskType}</span></p>
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <button type="button" onClick={() => handleConfirmation(analysisResult.detectedTaskType)} className="btn-primary flex-1">Siap, Jalankan</button>
+                                <div className="flex-1 relative">
+                                  <select 
+                                    onChange={(e) => handleConfirmation(e.target.value as TaskType)} 
+                                    defaultValue="" 
+                                    className="w-full px-6 py-4 text-sm font-black text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl transition appearance-none text-center cursor-pointer focus:ring-2 focus:ring-indigo-500/30"
+                                  >
+                                      <option value="" disabled>Ganti Kategori...</option>
+                                      {taskTypeOptions.filter(o => o.value !== analysisResult.detectedTaskType).map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                  </select>
                                 </div>
                             </div>
+                            <button type="button" onClick={cancelConfirmation} className="w-full text-center text-xs font-black text-slate-500 hover:text-slate-300 mt-8 uppercase tracking-widest transition-colors">Batalkan Prosedur</button>
                         </div>
+                      ) : (
+                        <div className="space-y-10 animate-in fade-in duration-700">
+                             <div className="space-y-4">
+                                <label htmlFor="analysis-instruction" className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">1. Master Blueprint / Ide</label>
+                                <textarea id="analysis-instruction" value={analysisInstruction} onChange={(e) => setAnalysisInstruction(e.target.value)} placeholder="Tuliskan misi prompt Anda di sini..." className="input-professional h-40 resize-none bg-slate-950/50" disabled={isAnalyzing} />
+                            </div>
 
-                          <button type="button" onClick={handleAutoFill} disabled={isAutoFillDisabled} className="w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg transition bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium shadow-lg shadow-indigo-900/50 disabled:opacity-50 mt-4">
-                            {isAnalyzing ? ( <> <LoaderIcon className="h-5 w-5" /> <span>Menganalisis...</span> </> ) : ( <> <SparklesIcon className="h-5 w-5" /> <span>Analisis & Isi Formulir</span> </> )}
-                        </button>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">2. Data & Konteks Pendukung</label>
+                                
+                                {(filesToAnalyze.length > 0 || pastedContexts.length > 0) && (
+                                    <div className="space-y-3 mb-6 max-h-72 overflow-y-auto scrollbar-custom bg-slate-950/50 p-4 rounded-2xl border border-slate-800/50">
+                                      {filesToAnalyze.map((file, index) => (
+                                        <div key={`file-${index}`} className="flex items-center justify-between bg-slate-800/30 border border-slate-700/30 p-4 rounded-xl text-sm group animate-in slide-in-from-left-4 duration-300">
+                                          <div className="flex items-center space-x-4 truncate">
+                                            <div className="p-2 bg-indigo-500/10 rounded-lg">
+                                              <CodeBracketIcon className="h-4 w-4 text-indigo-400" />
+                                            </div>
+                                            <span className="text-slate-300 font-bold truncate tracking-tight">{file.name}</span>
+                                          </div>
+                                          <button type="button" onClick={() => removeFile(index)} disabled={isAnalyzing} className="text-slate-600 hover:text-red-400 transition-all p-1.5 active:scale-90"><XCircleIcon className="h-5 w-5" /></button>
+                                        </div>
+                                      ))}
+                                      {pastedContexts.map((txt, index) => (
+                                        <div key={`txt-${index}`} className="flex items-center justify-between bg-slate-800/30 border border-violet-500/10 p-4 rounded-xl text-sm group animate-in slide-in-from-left-4 duration-300">
+                                          <div className="flex items-center space-x-4 truncate">
+                                            <div className="p-2 bg-violet-500/10 rounded-lg">
+                                              <PencilIcon className="h-4 w-4 text-violet-400" />
+                                            </div>
+                                            <span className="text-slate-400 font-medium truncate italic opacity-80">"{txt.substring(0, 40)}..."</span>
+                                          </div>
+                                          <button type="button" onClick={() => removeContext(index)} disabled={isAnalyzing} className="text-slate-600 hover:text-red-400 transition-all p-1.5 active:scale-90"><XCircleIcon className="h-5 w-5" /></button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isAnalyzing} className="flex flex-col items-center justify-center p-8 rounded-3xl transition-all border-2 border-dashed border-slate-800/50 hover:border-indigo-500/50 hover:bg-indigo-500/5 text-slate-500 hover:text-indigo-400 group h-full min-h-[160px]">
+                                        <UploadIcon className="h-10 w-10 mb-3 group-hover:scale-110 transition-transform duration-500" /> 
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-center">Injeksi Dokumen</span>
+                                    </button>
+                                    <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} disabled={isAnalyzing} accept=".pdf,.docx,.pptx,.txt,.md,.xlsx,image/*,.sol,.js,.ts,.py" multiple />
+
+                                    <div className="relative h-full">
+                                        <textarea value={currentContextInput} onChange={(e) => setCurrentContextInput(e.target.value)} placeholder="Snippet Konteks..." className="input-professional h-full min-h-[160px] pr-14 resize-none bg-slate-950/50" disabled={isAnalyzing} />
+                                        <button type="button" onClick={handleAddContext} disabled={!currentContextInput.trim() || isAnalyzing} className="absolute right-3 bottom-3 p-3 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-xl disabled:opacity-5 transition-all shadow-lg active:scale-90">
+                                          <SparklesIcon className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button 
+                              type="button" 
+                              onClick={handleAutoFill} 
+                              disabled={isAutoFillDisabled} 
+                              className="btn-primary w-full group relative overflow-hidden py-5"
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                              {isAnalyzing ? ( <> <LoaderIcon className="h-7 w-7 animate-spin" /> <span>Sinkronisasi Data...</span> </> ) : ( <> <SparklesIcon className="h-6 w-6 group-hover:rotate-12 transition-transform duration-500" /> <span>Ekstrak & Persiapkan Form</span> </> )}
+                            </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="status-success-premium">
+                        <div className="flex flex-col items-center text-center mb-8">
+                            <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-emerald-500/20 shadow-2xl shadow-emerald-950/40">
+                              <CheckIcon className="h-10 w-10 text-emerald-400" />
+                            </div>
+                            <h3 className="text-3xl font-black text-white tracking-tighter">Analisis Sempurna</h3>
+                            <p className="text-slate-400 mt-2 font-medium max-w-sm">Basis pengetahuan telah diserap. Silakan sempurnakan jika diperlukan.</p>
+                        </div>
+                        
+                        <div className="space-y-8">
+                            <div className="relative group">
+                                <textarea 
+                                    value={refinementInstruction} 
+                                    onChange={(e) => setRefinementInstruction(e.target.value)} 
+                                    placeholder="Contoh: 'Ubah nada bicaranya menjadi lebih formal'..." 
+                                    className="input-professional bg-slate-950/80 border-emerald-500/20 pr-16 h-32 resize-none" 
+                                    disabled={isAnalyzing} 
+                                />
+                                <button 
+                                    type="button" 
+                                    onClick={handleRefine} 
+                                    disabled={!refinementInstruction.trim() || isAnalyzing} 
+                                    className="absolute right-4 bottom-4 p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-20 transition-all active:scale-95 shadow-xl shadow-emerald-950/40"
+                                >
+                                    {isAnalyzing ? <LoaderIcon className="h-5 w-5 animate-spin" /> : <SparklesIcon className="h-5 w-5" />}
+                                </button>
+                            </div>
+                            
+                            <button type="button" onClick={resetAutoFill} className="w-full text-center text-[10px] font-black text-emerald-500 hover:text-emerald-400 transition-colors uppercase tracking-[0.3em]">
+                              Reset Pipeline Analisis
+                            </button>
+                        </div>
                     </div>
                   )}
-                  </>
-                ) : (
-                  <div className="bg-green-900/30 p-4 rounded-lg border border-green-700 animate-fade-in">
-                      <div className="text-center mb-4">
-                          <h3 className="font-semibold text-green-300">✅ Analisis Berhasil</h3>
-                          <p className="text-sm text-green-400 mt-1">Formulir telah diisi. Ingin menyesuaikan sesuatu?</p>
-                      </div>
-                      
-                      <div className="space-y-3">
-                          <div className="relative">
-                              <textarea 
-                                  value={refinementInstruction} 
-                                  onChange={(e) => setRefinementInstruction(e.target.value)} 
-                                  placeholder="Contoh: 'Ubah tujuan jadi lebih formal' atau 'Tambahkan fitur login'." 
-                                  className="w-full bg-gray-800/50 border border-green-700/50 rounded-md p-3 pr-20 text-sm focus:ring-2 focus:ring-green-500 h-20 placeholder-gray-500 resize-none" 
-                                  disabled={isAnalyzing} 
-                              />
-                              <button 
-                                  type="button" 
-                                  onClick={handleRefine} 
-                                  disabled={!refinementInstruction.trim() || isAnalyzing} 
-                                  className="absolute right-2 bottom-2 text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded disabled:opacity-50 transition flex items-center space-x-1"
-                              >
-                                  {isAnalyzing ? <LoaderIcon className="h-3 w-3" /> : <SparklesIcon className="h-3 w-3" />}
-                                  <span>Sesuaikan</span>
-                              </button>
-                          </div>
-                          
-                          <button type="button" onClick={resetAutoFill} className="w-full text-center text-xs text-indigo-300 hover:text-indigo-200 py-1">Mulai Ulang Analisis / Tambah Konteks</button>
-                      </div>
-                  </div>
-                )}
-                {analysisError && <div className={`mt-2 text-sm flex items-start space-x-2 p-2 rounded-md border ${analysisError.includes('429') || analysisError.includes('Kuota') ? 'text-yellow-400 bg-yellow-900/30 border-yellow-700/50 shadow-lg shadow-yellow-900/20' : 'text-red-400 bg-red-900/30 border-red-700/50'}`}><AlertTriangleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" /><span>{analysisError}</span></div>}
+
+                  {analysisError && (
+                    <div className={`mt-2 text-sm flex items-start space-x-2 p-2 rounded-md border ${analysisError.includes('429') || analysisError.includes('Kuota') ? 'text-yellow-400 bg-yellow-900/30 border-yellow-700/50 shadow-lg shadow-yellow-900/20' : 'text-red-400 bg-red-900/30 border-red-700/50'}`}>
+                      <AlertTriangleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      <span>{analysisError}</span>
+                    </div>
+                  )}
+                </div>
             </div>
 
-            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-              <div className="space-y-8">{activeSteps.map((step) => <div key={step.id}><Step stepData={step} formData={formData} onFormChange={handleFormChange} /></div>)}</div>
-              <div className="sticky bottom-0 z-10 bg-gray-800/80 backdrop-blur-sm -mx-6 -mb-6 mt-8 px-6 py-4 border-t border-gray-700">
-                <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                    <button type="button" onClick={startOver} className="font-bold py-3 px-6 rounded-lg transition bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto">Reset Form</button>
-                    <button type="submit" disabled={isLoading || isAnalyzing} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 w-full sm:w-auto">
-                      {isLoading && <LoaderIcon />} <span>{isLoading ? 'Memproses...' : 'Buat Prompt'}</span>
-                    </button>
-                </div>
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-16">
+              <div className="space-y-16 mt-12 pb-12">
+                {activeSteps.map((step) => (
+                  <div key={step.id}>
+                    <Step stepData={step} formData={formData} onFormChange={handleFormChange} />
+                  </div>
+                ))}
+              </div>
+              
+              <div className="sticky bottom-6 z-20 glass-card mx-0 mt-8 p-8 rounded-[2.5rem] flex flex-col sm:flex-row gap-5 items-center ring-1 ring-white/10 shadow-indigo-900/10">
+                  <button type="button" onClick={startOver} className="btn-secondary w-full sm:w-auto px-12">Reset</button>
+                  <button type="submit" disabled={isLoading || isAnalyzing} className="btn-primary w-full sm:flex-1 py-5 text-xl tracking-tight">
+                    {isLoading ? <LoaderIcon className="h-7 w-7 animate-spin" /> : <SparklesIcon className="h-7 w-7" />}
+                    <span>{isLoading ? 'Merekayasa...' : 'Forge Meta-Prompt'}</span>
+                  </button>
               </div>
             </form>
           </div>
 
-          <div className="mt-10 md:mt-0">
-            {isLoading ? <div className="animate-fade-in"><SkeletonPreview /></div> : output ? <div key={submissionCount} className="animate-fade-in"><Preview data={output} taskType={formData.task_type as string} /></div> : <div className="animate-fade-in"><Placeholder /></div>}
+          <div className="lg:col-span-1 h-full min-h-[600px]">
+            {isLoading ? (
+              <div className="animate-in fade-in zoom-in-95 duration-1000">
+                <SkeletonPreview />
+              </div>
+            ) : output ? (
+              <div key={submissionCount} className="animate-in fade-in slide-in-from-right-12 duration-1000 ease-out">
+                <Preview data={output} taskType={formData.task_type as string} />
+              </div>
+            ) : (
+              <div className="animate-in fade-in duration-1000 opacity-90 lg:sticky top-8">
+                <Placeholder />
+              </div>
+            )}
           </div>
         </div>
-        <footer className="text-center mt-12 text-gray-500 text-sm"><p>Powered by Google Gemini & React</p></footer>
+
+        <footer className="text-center mt-32 py-16 border-t border-slate-900 text-slate-700 text-[10px] font-black tracking-[0.4em] uppercase">
+          <p>© 2026 Promptware Architecture — Engine: Gemini 1.5 Pro</p>
+        </footer>
       </div>
     </div>
   );
+
 };
 
 export default App;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { SparklesIcon } from './icons';
+import { Sparkles as SparklesIcon } from 'lucide-react';
 
 const Placeholder = () => (
   <div className="flex h-full min-h-[50vh] items-center justify-center rounded-2xl border-2 border-dashed border-gray-600 bg-gray-800/30 p-8">

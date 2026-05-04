@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { type FormFieldData } from '../types';
-import { SparklesIcon, UploadIcon, XCircleIcon } from './icons';
+import { Sparkles as SparklesIcon, Upload as UploadIcon, XCircle as XCircleIcon, Check as CheckIcon } from 'lucide-react';
 
 // Component for Generic File Upload, for code files etc.
 const FileUploadField: React.FC<{
@@ -174,14 +174,14 @@ const FormField: React.FC<{
   value: any;
   onChange: (id: string, value: any) => void;
 }> = ({ field, value, onChange }) => {
-  const commonInputClass = "w-full bg-gray-700 border border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition";
+  const commonInputClass = "input-professional";
 
   const renderField = () => {
     switch (field.type) {
       case 'readonly':
-        if (!value) return null; // Don't render if there's no value
+        if (!value) return null; 
         return (
-           <div className="w-full bg-gray-800/60 border border-gray-700 rounded-md p-3 text-sm text-gray-400 italic">
+           <div className="w-full bg-slate-900/50 border border-slate-700/20 rounded-xl p-5 text-sm text-slate-500 font-medium italic leading-relaxed shadow-inner">
               {value}
            </div>
         );
@@ -196,30 +196,37 @@ const FormField: React.FC<{
       case 'image_upload':
         return (
           <ImageUploadField 
-            value={value as File | null}
-            onChange={(file) => onChange(field.id, file)}
-            helperText={field.helperText}
+             value={value as File | null}
+             onChange={(file) => onChange(field.id, file)}
+             helperText={field.helperText}
           />
         )
       case 'buttons':
         return (
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {field.options && Array.isArray(field.options) && field.options.map(opt => {
-              if (typeof opt === 'string') return null; // Should not happen with new type
+              if (typeof opt === 'string') return null;
               const isSelected = value === opt.value;
               return (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => onChange(field.id, opt.value)}
-                  className={`p-4 rounded-lg border-2 text-left transition-all duration-200 transform hover:scale-105 ${
+                  className={`p-6 rounded-3xl border-2 text-left transition-all duration-500 flex flex-col h-full active:scale-[0.98] group relative overflow-hidden ${
                     isSelected
-                      ? 'bg-indigo-500/20 border-indigo-500 shadow-lg'
-                      : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+                      ? 'bg-indigo-500/10 border-indigo-500/80 shadow-2xl shadow-indigo-950/40 ring-1 ring-indigo-500/20'
+                      : 'bg-slate-900/40 border-slate-800/80 hover:border-indigo-500/40 hover:bg-slate-800/40 shadow-lg'
                   }`}
                 >
-                  <div className="font-bold text-white">{opt.label}</div>
-                  <div className="text-sm text-gray-400 mt-1">{opt.description}</div>
+                  <div className={`font-black text-xl tracking-tighter mb-2 ${isSelected ? 'text-white' : 'text-slate-200'}`}>{opt.label}</div>
+                  <div className={`text-sm tracking-tight leading-relaxed flex-grow font-medium ${isSelected ? 'text-indigo-200/70' : 'text-slate-500 group-hover:text-slate-400'}`}>{opt.description}</div>
+                  {isSelected && (
+                    <div className="mt-6 flex justify-end">
+                      <div className="bg-indigo-500 p-1.5 rounded-full shadow-lg shadow-indigo-500/40">
+                        <CheckIcon className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -232,7 +239,7 @@ const FormField: React.FC<{
             value={value || ''}
             onChange={(e) => onChange(field.id, e.target.value)}
             required={field.required}
-            className={`${commonInputClass} h-24`}
+            className={`${commonInputClass} h-40 resize-none text-lg font-medium`}
             placeholder={field.helperText}
           />
         );
@@ -244,25 +251,30 @@ const FormField: React.FC<{
             value={value || ''}
             onChange={(e) => onChange(field.id, e.target.value)}
             required={field.required}
-            className={commonInputClass}
+            className={`${commonInputClass} text-lg font-medium`}
             placeholder={field.helperText}
           />
         );
       case 'select':
         return (
-          <select
-            id={field.id}
-            value={value || field.default}
-            onChange={(e) => onChange(field.id, e.target.value)}
-            className={commonInputClass}
-          >
-            {field.options?.map(opt => <option key={String(opt)} value={String(opt)}>{String(opt)}</option>)}
-          </select>
+          <div className="relative group">
+            <select
+              id={field.id}
+              value={value || field.default}
+              onChange={(e) => onChange(field.id, e.target.value)}
+              className={`${commonInputClass} appearance-none cursor-pointer pr-12 font-bold text-slate-300`}
+            >
+              {field.options?.map(opt => <option key={String(opt)} value={String(opt)} className="bg-slate-900">{String(opt)}</option>)}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-indigo-400 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+            </div>
+          </div>
         );
       case 'toggle':
         const isChecked = value === true;
         return (
-          <label htmlFor={field.id} className="flex items-center cursor-pointer">
+          <label htmlFor={field.id} className="flex items-center cursor-pointer group w-fit">
             <div className="relative">
               <input 
                 type="checkbox" 
@@ -271,34 +283,48 @@ const FormField: React.FC<{
                 checked={isChecked}
                 onChange={(e) => onChange(field.id, e.target.checked)}
               />
-              <div className={`block w-14 h-8 rounded-full transition ${isChecked ? 'bg-indigo-600' : 'bg-gray-600'}`}></div>
-              <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition transform ${isChecked ? 'translate-x-6' : ''}`}></div>
+              <div className={`block w-16 h-9 rounded-full transition-all duration-500 ${isChecked ? 'bg-indigo-500 shadow-xl shadow-indigo-900/50 ring-1 ring-white/20' : 'bg-slate-800 border border-slate-700'}`}></div>
+              <div className={`dot absolute left-1.5 top-1.5 bg-white w-6 h-6 rounded-full transition-all duration-500 transform ${isChecked ? 'translate-x-7 scale-110' : 'scale-90'} shadow-xl`}></div>
             </div>
           </label>
         );
       case 'radio':
         return (
-          <div className="flex space-x-4">
+          <div className="flex flex-wrap gap-8 mt-2">
             {field.options?.map(opt => (
-              <label key={String(opt)} className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name={field.id}
-                  value={String(opt)}
-                  checked={value === String(opt)}
-                  onChange={(e) => onChange(field.id, e.target.value)}
-                  className="form-radio h-4 w-4 text-indigo-600 bg-gray-700 border-gray-600 focus:ring-indigo-500"
-                />
-                <span className="capitalize">{String(opt)}</span>
+              <label key={String(opt)} className="flex items-center space-x-4 cursor-pointer group bg-slate-900/40 px-5 py-3 rounded-2xl border border-transparent hover:border-slate-800 transition-all">
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="radio"
+                    name={field.id}
+                    value={String(opt)}
+                    checked={value === String(opt)}
+                    onChange={(e) => onChange(field.id, e.target.value)}
+                    className="sr-only"
+                  />
+                  <div className={`h-6 w-6 rounded-full border-2 transition-all duration-300 ${value === String(opt) ? 'border-indigo-500 bg-indigo-500/20' : 'border-slate-700 bg-slate-900'}`}>
+                    {value === String(opt) && <div className="absolute inset-1.5 bg-indigo-500 rounded-full shadow-lg shadow-indigo-500/60"></div>}
+                  </div>
+                </div>
+                <span className={`capitalize font-black text-xs tracking-[0.1em] ${value === String(opt) ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`}>{String(opt)}</span>
               </label>
             ))}
           </div>
         );
       case 'checkbox':
         return (
-          <div className="flex flex-col space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
             {field.options?.map(opt => (
-              <label key={String(opt)} className="flex items-center space-x-2 cursor-pointer">
+              <label key={String(opt)} className={`flex items-center space-x-4 p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer group ${
+                (value as string[] || []).includes(String(opt))
+                  ? 'bg-indigo-500/10 border-indigo-500/60 text-white shadow-xl shadow-indigo-950/20'
+                  : 'bg-slate-900/40 border-slate-800/80 text-slate-500 hover:border-indigo-500/30'
+              }`}>
+                <div className={`w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                    (value as string[] || []).includes(String(opt)) ? 'bg-indigo-500 border-indigo-400' : 'bg-slate-950 border-slate-700'
+                }`}>
+                    {(value as string[] || []).includes(String(opt)) && <CheckIcon className="w-3.5 h-3.5 text-white" />}
+                </div>
                 <input
                   type="checkbox"
                   value={String(opt)}
@@ -310,9 +336,9 @@ const FormField: React.FC<{
                       : currentValues.filter(v => v !== String(opt));
                     onChange(field.id, newValues);
                   }}
-                  className="form-checkbox h-4 w-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                  className="sr-only"
                 />
-                <span className="capitalize">{String(opt)}</span>
+                <span className="capitalize font-black text-sm tracking-tight">{String(opt)}</span>
               </label>
             ))}
           </div>
@@ -326,12 +352,13 @@ const FormField: React.FC<{
   if (!isVisible) return null;
 
   return (
-    <div className="mb-6">
-      <label htmlFor={field.id} className="block text-sm font-medium text-gray-300 mb-2">{field.label}{field.required && <span className="text-red-400 ml-1">*</span>}</label>
+    <div className="mb-14 animate-in fade-in slide-in-from-bottom-6 duration-700">
+      <label htmlFor={field.id} className="block text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4 px-1">{field.label}{field.required && <span className="text-indigo-400 ml-1.5">*</span>}</label>
       {renderField()}
-       {field.type !== 'readonly' && field.helperText && <p className="text-xs text-gray-500 mt-2">{field.helperText}</p>}
+       {field.type !== 'readonly' && field.helperText && <p className="text-[11px] text-slate-600 mt-4 italic px-2 font-medium leading-relaxed opacity-80">{field.helperText}</p>}
     </div>
   );
 };
+
 
 export default FormField;
