@@ -24,13 +24,13 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
   // 'breaks: true' agar baris baru tunggal menjadi <br>
   const rawHtml = window.marked.parse(content, { gfm: true, breaks: true });
 
-  // Menggunakan `dangerouslySetInnerHTML` aman di sini karena kontennya
-  // berasal dari API Gemini yang kita kontrol, bukan input pengguna yang sewenang-wenang dari web.
   return (
     <div
-      className="prose prose-invert prose-sm max-w-none text-gray-300
-                 prose-headings:text-indigo-300 prose-a:text-indigo-400 prose-strong:text-gray-200
-                 prose-ul:list-disc prose-ol:list-decimal prose-li:my-1
+      className="prose prose-invert max-w-none text-gray-300
+                 prose-p:leading-relaxed prose-p:mb-4
+                 prose-headings:text-indigo-300 prose-headings:mb-3 prose-headings:mt-6 first:prose-headings:mt-0
+                 prose-a:text-indigo-400 prose-strong:text-gray-200
+                 prose-ul:list-disc prose-ol:list-decimal prose-li:my-2
                  prose-blockquote:border-l-4 prose-blockquote:border-indigo-600 prose-blockquote:pl-4 prose-blockquote:italic
                  prose-code:bg-gray-700/80 prose-code:rounded prose-code:px-1.5 prose-code:py-1 prose-code:text-sm prose-code:font-mono
                  prose-pre:bg-gray-900/50 prose-pre:p-4 prose-pre:rounded-md"
@@ -61,7 +61,7 @@ const CodeBlock: React.FC<{ title: string; content: string; language?: string }>
           <span>{copied ? 'Disalin!' : 'Salin'}</span>
         </button>
       </div>
-      <pre className="p-4 text-sm text-gray-200 whitespace-pre-wrap break-words">
+      <pre className="p-5 text-sm text-gray-200 whitespace-pre-wrap break-words leading-relaxed font-mono">
         <code className={`language-${language}`}>{content}</code>
       </pre>
     </div>

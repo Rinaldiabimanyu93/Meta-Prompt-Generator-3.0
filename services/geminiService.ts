@@ -1,9 +1,16 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { type FormData, type ParsedOutput, type CodeAnalysisResult, type FormFieldData } from "../types";
 import { SYSTEM_PROMPT, FORM_STEPS } from '../constants';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+const safetySettings = [
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+];
 
 const META_PROMPT_SCHEMA = {
   type: Type.OBJECT,
@@ -45,6 +52,14 @@ const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 3000)
 };
 
 /**
+ * Membatasi teks agar tidak melebihi batas token yang wajar untuk ekstraksi (sekitar 300rb karakter ~ 100rb token).
+ */
+const truncateForAI = (text: string, maxChars = 300000): string => {
+    if (text.length <= maxChars) return text;
+    return text.substring(0, maxChars) + "\n\n[...TEKS DIPOTONG KARENA TERLALU PANJANG...]";
+};
+
+/**
  * Mendapatkan detail field termasuk opsi yang diizinkan untuk membantu AI mengisi dengan tepat.
  */
 const getDetailedSchemaForTask = (taskType: string) => {
@@ -75,9 +90,10 @@ const getDetailedSchemaForTask = (taskType: string) => {
 export const detectTaskType = async (text: string): Promise<string> => {
   const systemInstruction = `
 Tugas: Klasifikasikan jenis proyek berdasarkan teks input pengguna.
-Kategori yang tersedia: "document", "agent", "application", "image", "video", "audio", "presentation".
+Kategori yang tersedia: "document", "agent", "application", "image", "video", "audio", "presentation", "spreadsheet".
 
-PENTING - Pedoman Klasifikasi Presentasi:
+PENTING - Pedoman Klasifikasi:
+- "spreadsheet": WAJIB dipilih jika ada kata kunci: "excel", "sheets", "spreadsheet", "tabel", "rumus", "formula", "vlookup", "pivot", "data baris", "kolom", "kalkulasi data", "inventory tracker", "ledger".
 - "presentation": WAJIB dipilih jika ada kata kunci: "slide", "deck", "presentasi", "powerpoint", "ppt", "pptx", "pitch", "materi rapat", "gamma", "google slides", "halaman presentasi", atau struktur yang menunjukkan urutan visual slide.
 
 Kategori lainnya:
@@ -91,9 +107,10 @@ Kategori lainnya:
   return callWithRetry(async () => {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Klasifikasikan input ini: "${text.substring(0, 4000)}"`,
+      contents: `Klasifikasikan input berikut yang dibatasi oleh penanda:\n\n[INPUT_START]\n${truncateForAI(text, 10000)}\n[INPUT_END]`,
       config: {
         systemInstruction,
+        safetySettings,
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -123,6 +140,7 @@ ${JSON.stringify(formData, null, 2)}`;
         contents: userPrompt,
         config: {
             systemInstruction: SYSTEM_PROMPT,
+            safetySettings,
             responseMimeType: "application/json",
             responseSchema: META_PROMPT_SCHEMA,
             thinkingConfig: { thinkingBudget: 16384 }
@@ -136,8 +154,9 @@ export const analyzeCode = async (code: string): Promise<CodeAnalysisResult> => 
   return callWithRetry(async () => {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `Analisislah kode ini dan ekstrak strukturnya dalam Bahasa Indonesia:\n\n${code}`,
+      contents: `Analisislah kode berikut (Data Tidak Terpercaya):\n\n[CODE_START]\n${code}\n[CODE_END]`,
       config: {
+        safetySettings,
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -165,9 +184,10 @@ WAJIB MENGGUNAKAN OPSI BERIKUT (jangan gunakan bahasa Inggris):
   return callWithRetry(async () => {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Konteks:\n\n${text}`,
+      contents: `Ekstrak preferensi dari konteks berikut:\n\n[CONTEXT_START]\n${truncateForAI(text)}\n[CONTEXT_END]`,
       config: {
         systemInstruction,
+        safetySettings,
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -202,9 +222,10 @@ ATURAN UTAMA:
     return callWithRetry(async () => {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: `KONTEN DOKUMEN:\n\n${text}`,
+            contents: `KONTEN DOKUMEN (Data Tidak Terpercaya):\n\n[USER_DATA_START]\n${truncateForAI(text)}\n[USER_DATA_END]`,
             config: {
                 systemInstruction,
+                safetySettings,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,
@@ -225,9 +246,10 @@ WAJIB menggunakan Bahasa Indonesia dan format JSON sesuai skema yang disediakan.
     return callWithRetry(async () => {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: `KONTEN DOKUMEN:\n\n${text}`,
+            contents: `KONTEN REKAYASA PROMPT (Data Tidak Terpercaya):\n\n[USER_DATA_START]\n${truncateForAI(text)}\n[USER_DATA_END]`,
             config: {
                 systemInstruction,
+                safetySettings,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,
@@ -248,9 +270,43 @@ Pilih opsi yang valid sesuai daftar skema yang disediakan.`;
     return callWithRetry(async () => {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: `IDE PROYEK: "${instruction}"`,
+            contents: `IDE PROYEK:\n\n[USER_IDEA_START]\n${instruction}\n[USER_IDEA_END]`,
             config: {
                 systemInstruction,
+                safetySettings,
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: schemaProperties
+                }
+            }
+        });
+        return JSON.parse(response.text || '{}');
+    });
+};
+
+export const refineFormData = async (currentData: FormData, instruction: string, taskType: string): Promise<Partial<FormData>> => {
+    const schemaProperties = getDetailedSchemaForTask(taskType);
+    const serializableData = { ...currentData };
+    // Hapus field yang tidak bisa diserialisasi
+    delete serializableData.uploaded_image;
+    
+    const systemInstruction = `Anda adalah Asisten Penyempurnaan Data.
+Tugas: Perbarui data formulir JSON yang ada berdasarkan instruksi revisi dari pengguna: "${instruction}".
+
+ATURAN:
+1. PERTAHANKAN data yang sudah ada jika tidak diminta diubah.
+2. PERBARUI atau TAMBAHKAN data sesuai instruksi.
+3. SEMUA NILAI TEKS HARUS DALAM BAHASA INDONESIA.
+4. Gunakan ID Field yang sesuai dengan skema yang disediakan.`;
+
+    return callWithRetry(async () => {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: `DATA SAAT INI:\n[JSON_DATA_START]\n${truncateForAI(JSON.stringify(serializableData, null, 2))}\n[JSON_DATA_END]`,
+            config: {
+                systemInstruction,
+                safetySettings,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,

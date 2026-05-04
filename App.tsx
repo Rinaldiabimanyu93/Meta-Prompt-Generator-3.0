@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { FORM_STEPS } from './constants';
 import { type FormData, type ParsedOutput, type CodeAnalysisResult, type FormFieldData } from './types';
-import { generateMetaPrompt, extractInfoFromDocument, extractInfoWithInstruction, extractInfoFromIdea, detectTaskType, detectPreferences, analyzeCode } from './services/geminiService';
+import { generateMetaPrompt, extractInfoFromDocument, extractInfoWithInstruction, extractInfoFromIdea, detectTaskType, detectPreferences, analyzeCode, refineFormData } from './services/geminiService';
 import { parseFile } from './services/fileParser';
 import Step from './components/Step';
 import Preview from './components/Preview';
@@ -44,7 +44,7 @@ const createInitialState = (): FormData => {
     return initialState;
 };
 
-type TaskType = 'document' | 'agent' | 'application' | 'image' | 'video' | 'audio' | 'presentation';
+type TaskType = 'document' | 'agent' | 'application' | 'image' | 'video' | 'audio' | 'presentation' | 'spreadsheet';
 
 const fileToBase64 = (file: File): Promise<{ base64: string, mimeType: string }> => {
   return new Promise((resolve, reject) => {
@@ -74,6 +74,9 @@ const formatErrorMessage = (error: any): string => {
     if (error.status === 429 || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
         return "Kuota API Terlampaui (429). Mohon tunggu sekitar 60 detik sebelum mencoba kembali. Jika Anda menggunakan Free Tier, limit biasanya 15 request per menit.";
     }
+    if (msg.includes('token count exceeds') || msg.includes('INVALID_ARGUMENT') && msg.includes('maximum number of tokens')) {
+        return "Dokumen atau konteks terlalu panjang! Ukuran input melebihi batas 1 juta token. Mohon kurangi jumlah file atau pendekkan teks yang ditempel.";
+    }
     return error.message || "Terjadi kesalahan yang tidak terduga.";
 };
 
@@ -95,6 +98,7 @@ const App: React.FC = () => {
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{ textForAnalysis: string, fileTextContent: string, hasFiles: boolean, hasInstruction: boolean, detectedTaskType: TaskType } | null>(null);
   const [autoFillCompleted, setAutoFillCompleted] = useState(false);
+  const [refinementInstruction, setRefinementInstruction] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -292,6 +296,22 @@ const App: React.FC = () => {
   const handleConfirmation = (chosenType: TaskType) => proceedWithExtraction(chosenType);
   const cancelConfirmation = () => { setNeedsConfirmation(false); setAnalysisResult(null); setIsAnalyzing(false); }
 
+  const handleRefine = async () => {
+    if (!refinementInstruction.trim()) return;
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    try {
+        const refinedData = await refineFormData(formData, refinementInstruction, formData.task_type as string);
+        setFormData(prev => ({ ...prev, ...refinedData }));
+        setRefinementInstruction('');
+        setAnalysisError(null);
+    } catch (err: any) {
+        setAnalysisError(formatErrorMessage(err));
+    } finally {
+        setIsAnalyzing(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setIsLoading(true);
     setError(null);
@@ -414,10 +434,34 @@ const App: React.FC = () => {
                   )}
                   </>
                 ) : (
-                  <div className="bg-green-900/30 p-4 rounded-lg border border-green-700 animate-fade-in text-center">
-                      <h3 className="font-semibold text-green-300">✅ Analisis Berhasil</h3>
-                      <p className="text-sm text-green-400 mt-1">Formulir telah diisi. Silakan tinjau dan sesuaikan di bawah.</p>
-                      <button type="button" onClick={resetAutoFill} className="mt-3 text-sm font-semibold text-indigo-300 hover:text-indigo-200 bg-indigo-500/20 px-3 py-1 rounded-md">Ubah Input / Tambah Konteks</button>
+                  <div className="bg-green-900/30 p-4 rounded-lg border border-green-700 animate-fade-in">
+                      <div className="text-center mb-4">
+                          <h3 className="font-semibold text-green-300">✅ Analisis Berhasil</h3>
+                          <p className="text-sm text-green-400 mt-1">Formulir telah diisi. Ingin menyesuaikan sesuatu?</p>
+                      </div>
+                      
+                      <div className="space-y-3">
+                          <div className="relative">
+                              <textarea 
+                                  value={refinementInstruction} 
+                                  onChange={(e) => setRefinementInstruction(e.target.value)} 
+                                  placeholder="Contoh: 'Ubah tujuan jadi lebih formal' atau 'Tambahkan fitur login'." 
+                                  className="w-full bg-gray-800/50 border border-green-700/50 rounded-md p-3 pr-20 text-sm focus:ring-2 focus:ring-green-500 h-20 placeholder-gray-500 resize-none" 
+                                  disabled={isAnalyzing} 
+                              />
+                              <button 
+                                  type="button" 
+                                  onClick={handleRefine} 
+                                  disabled={!refinementInstruction.trim() || isAnalyzing} 
+                                  className="absolute right-2 bottom-2 text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded disabled:opacity-50 transition flex items-center space-x-1"
+                              >
+                                  {isAnalyzing ? <LoaderIcon className="h-3 w-3" /> : <SparklesIcon className="h-3 w-3" />}
+                                  <span>Sesuaikan</span>
+                              </button>
+                          </div>
+                          
+                          <button type="button" onClick={resetAutoFill} className="w-full text-center text-xs text-indigo-300 hover:text-indigo-200 py-1">Mulai Ulang Analisis / Tambah Konteks</button>
+                      </div>
                   </div>
                 )}
                 {analysisError && <div className={`mt-2 text-sm flex items-start space-x-2 p-2 rounded-md border ${analysisError.includes('429') || analysisError.includes('Kuota') ? 'text-yellow-400 bg-yellow-900/30 border-yellow-700/50 shadow-lg shadow-yellow-900/20' : 'text-red-400 bg-red-900/30 border-red-700/50'}`}><AlertTriangleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" /><span>{analysisError}</span></div>}
