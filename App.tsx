@@ -73,12 +73,15 @@ const formatErrorMessage = (error: any, onRateLimit?: (seconds: number) => void)
     const msg = error.message || "";
     if (error.status === 429 || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
         if (onRateLimit) onRateLimit(60);
-        return "Kuota API Terlampaui (429). Mohon tunggu sekitar 60 detik sebelum mencoba kembali. Jika Anda menggunakan Free Tier, limit biasanya 15 request per menit.";
+        return "Kuota harian hampir habis, silakan coba beberapa saat lagi.";
+    }
+    if (error.status === 503 || msg.includes('503') || msg.includes('Service Unavailable')) {
+        return "Server Google sedang padat, mohon tunggu 1-2 menit lalu coba lagi.";
     }
     if (msg.includes('token count exceeds') || msg.includes('INVALID_ARGUMENT') && msg.includes('maximum number of tokens')) {
-        return "Dokumen atau konteks terlalu panjang! Ukuran input melebihi batas 1 juta token. Mohon kurangi jumlah file atau pendekkan teks yang ditempel.";
+        return "Input terlalu panjang! Melebihi batas token.";
     }
-    return error.message || "Terjadi kesalahan yang tidak terduga.";
+    return error.message || "Terjadi kesalahan sistem.";
 };
 
 
@@ -398,12 +401,9 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           <div className="card-premium p-6 sm:p-10 lg:sticky top-8">
             {error && (
-               <div className="bg-red-900/30 border border-red-500/50 text-red-100 px-6 py-4 rounded-2xl relative mb-8 flex items-start space-x-4 animate-in zoom-in-95" role="alert">
-                <AlertTriangleIcon className="h-6 w-6 text-red-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <strong className="font-black uppercase tracking-widest text-xs">Sistem Error</strong>
-                  <span className="block mt-1 text-sm opacity-90">{error}</span>
-                </div>
+               <div className="bg-red-900/20 border border-red-500/30 text-red-200 px-4 py-3 rounded-xl relative mb-6 flex items-center space-x-3 animate-in fade-in duration-300" role="alert">
+                <AlertTriangleIcon className="h-4 w-4 text-red-400 flex-shrink-0" />
+                <span className="text-xs font-bold tracking-tight">{error}</span>
               </div>
             )}
             
@@ -549,8 +549,8 @@ const App: React.FC = () => {
                   )}
 
                   {analysisError && (
-                    <div className={`mt-2 text-sm flex items-start space-x-2 p-2 rounded-md border ${analysisError.includes('429') || analysisError.includes('Kuota') ? 'text-yellow-400 bg-yellow-900/30 border-yellow-700/50 shadow-lg shadow-yellow-900/20' : 'text-red-400 bg-red-900/30 border-red-700/50'}`}>
-                      <AlertTriangleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <div className={`mt-2 text-[11px] font-bold flex items-center space-x-2 px-3 py-2 rounded-lg border animate-in slide-in-from-top-2 ${analysisError.includes('429') || analysisError.includes('503') || analysisError.includes('Kuota') ? 'text-yellow-400 bg-yellow-900/20 border-yellow-700/30' : 'text-red-400 bg-red-900/20 border-red-700/30'}`}>
+                      <AlertTriangleIcon className="h-3.5 w-3.5 flex-shrink-0" />
                       <span>{analysisError}</span>
                     </div>
                   )}
@@ -576,7 +576,7 @@ const App: React.FC = () => {
             </form>
           </div>
 
-          <div className="lg:col-span-1 h-full min-h-[600px]">
+          <div className="lg:col-span-1 h-full min-h-[850px]">
             {isLoading ? (
               <div className="animate-in fade-in zoom-in-95 duration-1000">
                 <SkeletonPreview />
@@ -594,7 +594,7 @@ const App: React.FC = () => {
         </div>
 
         <footer className="text-center mt-32 py-16 border-t border-slate-900 text-slate-700 text-[10px] font-black tracking-[0.4em] uppercase">
-          <p>© 2026 Promptware Architecture — Engine: Gemini 1.5 Pro</p>
+          <p>© 2026 Promptware Architecture — Engine: Gemini 1.5 Flash</p>
         </footer>
       </div>
     </div>

@@ -108,7 +108,7 @@ const Preview: React.FC<PreviewProps> = ({ data, taskType }) => {
               <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.8)]"></span>
               <span>Strategic Intelligence</span>
             </h3>
-            <p className="text-slate-200 leading-relaxed text-xl font-medium tracking-tight">{data.summary}</p>
+            <p className="text-slate-200 leading-[1.75] text-xl font-medium tracking-tight">{data.summary}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               {data.techniques.split(',').map((tech, idx) => (
                 <span key={idx} className="text-[10px] font-black text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20 uppercase tracking-widest">
