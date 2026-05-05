@@ -42,7 +42,7 @@ const CodeBlock: React.FC<{ title: string; content: string; language?: string }>
   }, [content]);
 
   return (
-    <div className="bg-slate-900 rounded-[2rem] overflow-hidden my-12 shadow-2xl border border-slate-800/80 ring-1 ring-white/5">
+    <div className="bg-slate-900 rounded-[2.5rem] overflow-hidden my-12 shadow-2xl border border-slate-800/80 ring-1 ring-white/5">
       <div className="flex justify-between items-center px-10 py-6 bg-slate-950/40 border-b border-slate-800/50">
         <h3 className="font-black text-indigo-400 tracking-widest uppercase text-[10px]">{title}</h3>
         <button
@@ -51,10 +51,10 @@ const CodeBlock: React.FC<{ title: string; content: string; language?: string }>
           aria-label={`Copy ${title}`}
         >
           {copied ? <CheckIcon className="h-4 w-4 text-green-200" /> : <CopyIcon className="h-4 w-4" />}
-          <span className="font-bold tracking-tight">{copied ? 'COPIED' : 'COPY PROMPT'}</span>
+          <span className="font-bold tracking-tight uppercase">{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
-      <pre className="p-10 text-sm text-slate-200 whitespace-pre-wrap break-words leading-[1.8] font-mono bg-slate-950/20">
+      <pre className="p-10 text-sm text-slate-200 whitespace-pre-wrap break-words leading-[1.8] font-mono bg-slate-950/20 overflow-x-auto scrollbar-custom">
         <code className={`language-${language}`}>{content}</code>
       </pre>
     </div>
@@ -73,7 +73,7 @@ const AccordionItem: React.FC<{ title: string; children: React.ReactNode }> = ({
         <ChevronDownIcon className={`h-6 w-6 transition-transform duration-500 ${isOpen ? 'rotate-180 text-indigo-400' : 'text-slate-600 group-hover:text-slate-400'}`} />
       </button>
       {isOpen && (
-        <div className="px-10 pb-12 pt-6 bg-slate-950/40 border-t border-slate-800/30 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="px-10 pb-12 pt-6 bg-slate-950/40 border-t border-slate-800/30 animate-in fade-in slide-in-from-top-4 duration-500 overflow-hidden">
           {children}
         </div>
       )}
@@ -108,7 +108,7 @@ const Preview: React.FC<PreviewProps> = ({ data, taskType }) => {
               <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.8)]"></span>
               <span>Strategic Intelligence</span>
             </h3>
-            <p className="text-slate-200 leading-[1.75] text-xl font-medium tracking-tight">{data.summary}</p>
+            <p className="text-slate-200 leading-[1.8] text-xl font-medium tracking-tight mb-8">{data.summary}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               {data.techniques.split(',').map((tech, idx) => (
                 <span key={idx} className="text-[10px] font-black text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20 uppercase tracking-widest">
@@ -140,13 +140,13 @@ const Preview: React.FC<PreviewProps> = ({ data, taskType }) => {
 
       <CodeBlock title="Integration UI Manifest (JSON)" content={formattedUiSpec} language="json" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        <div className="card-premium p-10 ring-1 ring-white/5">
+      <div className="flex flex-col gap-8">
+        <div className="card-premium p-10 ring-1 ring-white/5 w-full">
           <h3 className="text-2xl font-black mb-8 text-indigo-400 tracking-tighter uppercase">Quality Matrix</h3>
           <MarkdownRenderer content={data.checklist} />
         </div>
 
-        <div className="card-premium p-10 ring-1 ring-white/5">
+        <div className="card-premium p-10 ring-1 ring-white/5 w-full">
           <h3 className="text-2xl font-black mb-8 text-emerald-400 tracking-tighter uppercase">Simulated Neural Output</h3>
           <MarkdownRenderer content={data.example} />
         </div>

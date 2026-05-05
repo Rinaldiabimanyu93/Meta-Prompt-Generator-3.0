@@ -29,7 +29,7 @@
 
 @layer components {
   .prose-premium {
-    @apply prose prose-invert prose-lg max-w-none text-slate-300;
+    @apply prose prose-invert prose-slate max-w-none text-slate-300;
     @apply prose-p:leading-[1.8] prose-p:mb-10 prose-p:text-slate-300/90;
     @apply prose-headings:text-indigo-400 prose-headings:font-black prose-headings:tracking-tighter prose-headings:mb-8 prose-headings:mt-16 first:prose-headings:mt-0;
     @apply prose-h2:text-4xl prose-h3:text-2xl;
@@ -38,7 +38,7 @@
     @apply prose-ul:list-disc prose-ul:marker:text-emerald-400 prose-ul:mb-10 prose-ul:pl-10 prose-ol:list-decimal prose-ol:marker:text-emerald-400 prose-ol:mb-10 prose-ol:pl-10 prose-li:my-4 prose-li:pl-2;
     @apply prose-blockquote:border-l-4 prose-blockquote:border-indigo-500 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:bg-indigo-500/5 prose-blockquote:py-8 prose-blockquote:rounded-r-[2rem] prose-blockquote:my-12;
     @apply prose-code:bg-slate-950 prose-code:rounded-lg prose-code:px-2.5 prose-code:py-1.5 prose-code:text-[0.9em] prose-code:font-mono prose-code:text-indigo-300 before:prose-code:content-[''] after:prose-code:content-[''];
-    @apply prose-pre:bg-slate-950 prose-pre:p-10 prose-pre:rounded-[2.5rem] prose-pre:shadow-2xl prose-pre:border prose-pre:border-slate-800/80 prose-pre:my-12;
+    @apply prose-pre:bg-slate-950 prose-pre:p-10 prose-pre:rounded-[2.5rem] prose-pre:shadow-2xl prose-pre:border prose-pre:border-slate-800/80 prose-pre:my-12 prose-pre:overflow-x-auto;
   }
 
   .glass-card {
